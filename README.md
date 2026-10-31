@@ -13,7 +13,7 @@ reachable where it is blocked.
 Fresh Ubuntu/Debian LXC or VM, as root:
 
 ```bash
-apt install -y git && git clone https://github.com/MasoudPourhossein/nexus-ad /opt/nexus-ad && bash /opt/nexus-ad/install.sh
+apt install -y git && (git -C /opt/nexus-ad pull --ff-only 2>/dev/null || git clone https://github.com/MasoudPourhossein/nexus-ad /opt/nexus-ad) && bash /opt/nexus-ad/install.sh
 ```
 
 The installer detects blocked registries (Docker Hub / docker.com are filtered

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Nexus Ad installer. Works on servers inside Iran (filtered registries) and abroad.
-#   apt install -y git && git clone https://github.com/MasoudPourhossein/nexus-ad /opt/nexus-ad && bash /opt/nexus-ad/install.sh
+#   apt install -y git && (git -C /opt/nexus-ad pull --ff-only 2>/dev/null || git clone https://github.com/MasoudPourhossein/nexus-ad /opt/nexus-ad) && bash /opt/nexus-ad/install.sh
 set -euo pipefail
 
 BLUE='\033[1;34m'; GREEN='\033[1;32m'; YELLOW='\033[1;33m'; RED='\033[1;31m'; NC='\033[0m'
