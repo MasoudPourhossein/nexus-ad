@@ -51,11 +51,21 @@ export async function campaignRoutes(app: FastifyInstance): Promise<void> {
         message: messageSchema,
         checkExists: z.boolean().default(true),
         start: z.boolean().default(false),
+        ratePerMinute: z.number().int().min(1).max(600).optional(),
+        dailyCap: z.number().int().min(0).max(10000000).optional(),
       }),
       request.body,
     );
     const tid = request.tenant.id;
     await ownSession(tid, body.sessionId);
+    if (body.ratePerMinute !== undefined || body.dailyCap !== undefined) {
+      await sql`
+        UPDATE wa_sessions SET
+          rate_per_minute = COALESCE(${body.ratePerMinute ?? null}, rate_per_minute),
+          daily_cap = COALESCE(${body.dailyCap ?? null}, daily_cap),
+          next_send_at = now()
+        WHERE id = ${body.sessionId} AND tenant_id = ${tid}`;
+    }
     const list = await sql`SELECT 1 FROM contact_lists WHERE id = ${body.listId} AND tenant_id = ${tid}`;
     if (!list.length) throw new HttpError(404, 'list_not_found');
     const [row] = await sql`

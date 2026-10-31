@@ -18,11 +18,14 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [msg, setMsg] = useState<Msg>({ type: 'text', text: '' });
   const [checkExists, setCheckExists] = useState(true);
   const [start, setStart] = useState(true);
+  const [override, setOverride] = useState(false);
+  const [rate, setRate] = useState(20);
+  const [cap, setCap] = useState(50000);
   const [busy, setBusy] = useState(false);
   async function create() {
     setBusy(true);
     try {
-      await api('/campaigns', { body: { name, sessionId: Number(sessionId), listId: Number(listId), message: cleanMsg(msg), checkExists, start } });
+      await api('/campaigns', { body: { name, sessionId: Number(sessionId), listId: Number(listId), message: cleanMsg(msg), checkExists, start, ...(override ? { ratePerMinute: Number(rate), dailyCap: Number(cap) } : {}) } });
       onCreated();
     } catch (e) {
       toast.err(e);
@@ -53,6 +56,13 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           <div className="space-y-3 rounded-xl bg-slate-50 p-4 dark:bg-white/[0.03]">
             <Toggle checked={checkExists} onChange={setCheckExists} label={t('checkExists')} />
             <Toggle checked={start} onChange={setStart} label={t('startNow')} />
+            <Toggle checked={override} onChange={setOverride} label={t('overrideRate')} />
+            {override && (
+              <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-3 dark:border-white/5">
+                <Field label={t('ratePerMinute')}><input className="input" type="number" min={1} max={600} value={rate} onChange={(e) => setRate(Number(e.target.value))} /></Field>
+                <Field label={t('dailyCap')}><input className="input" type="number" min={0} value={cap} onChange={(e) => setCap(Number(e.target.value))} /></Field>
+              </div>
+            )}
           </div>
         </div>
         <div className="md:col-span-2">

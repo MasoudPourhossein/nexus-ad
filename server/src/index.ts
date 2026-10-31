@@ -2,6 +2,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
+import { createReadStream, existsSync as fileExists } from 'node:fs';
 import bcrypt from 'bcryptjs';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { existsSync, readFileSync } from 'node:fs';
@@ -9,12 +10,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authenticate } from './auth.js';
 import { config } from './config.js';
+import { join as pathJoin } from 'node:path';
 import { migrate, sql } from './db.js';
 import { HttpError, sendError } from './http.js';
 import { handleWahaEvent } from './incoming.js';
 import { adminRoutes } from './routes/admin.js';
 import { campaignRoutes } from './routes/campaigns.js';
 import { contactRoutes } from './routes/contacts.js';
+import { mediaRoutes } from './routes/media.js';
 import { groupRoutes } from './routes/groups.js';
 import { coreRoutes } from './routes/core.js';
 import { sessionRoutes } from './routes/sessions.js';
@@ -22,6 +25,7 @@ import { startScheduler, stopScheduler } from './sender.js';
 import { startActiveProxy } from './settings.js';
 import { stopXray } from './xray.js';
 
+function joinMedia(id: string): string { return pathJoin(config.mediaDir, id); }
 const basePath = ('/' + (process.env.NEXUS_BASE_PATH ?? '').replace(/^\/+|\/+$/g, '')).replace(/^\/$/, '');
 const internalPort = Number(process.env.NEXUS_INTERNAL_PORT ?? 3101);
 const webDir = process.env.NEXUS_WEB_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'web', 'dist');
@@ -89,6 +93,7 @@ async function buildPublic(): Promise<FastifyInstance> {
         t.addHook('preHandler', authenticate);
         await t.register(sessionRoutes);
         await t.register(contactRoutes);
+        await t.register(mediaRoutes);
         await t.register(groupRoutes);
         await t.register(campaignRoutes);
         await t.register(adminRoutes);
@@ -124,6 +129,12 @@ async function buildInternal(): Promise<FastifyInstance> {
       console.error('webhook handling failed', err);
     });
     return { ok: true };
+  });
+  app.get('/media/:id', async function media(request, reply) {
+    const id = String((request.params as any).id).replace(/[^a-zA-Z0-9._-]/g, '');
+    const path = joinMedia(id);
+    if (!id || !fileExists(path)) return reply.code(404).send({ error: 'not_found' });
+    return reply.send(createReadStream(path));
   });
   app.get('/health', async function health() {
     await sql`SELECT 1`;

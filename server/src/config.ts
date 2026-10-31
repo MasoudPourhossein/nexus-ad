@@ -19,4 +19,7 @@ export const config = {
   adminPassword: process.env.NEXUS_ADMIN_PASSWORD ?? 'admin1234',
   schedulerTickMs: Number(process.env.NEXUS_SCHEDULER_TICK_MS ?? 1000),
   defaultCountryCode: process.env.NEXUS_DEFAULT_COUNTRY_CODE ?? '98',
+  mediaDir: process.env.NEXUS_MEDIA_DIR ?? '/data/media',
+  maxDailyCap: Number(process.env.NEXUS_MAX_DAILY_CAP ?? 1000000),
+  maxRatePerMinute: Number(process.env.NEXUS_MAX_RATE_PER_MINUTE ?? 120),
 };

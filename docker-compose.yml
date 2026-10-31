@@ -46,16 +46,19 @@ services:
       NEXUS_TLS_KEY: ${TLS_KEY}
       NEXUS_PORT: "3100"
       NEXUS_XRAY_CONFIG: /data/xray/config.json
+      NEXUS_MEDIA_DIR: /data/media
       NEXUS_XRAY_HTTP_PORT: "10809"
     volumes:
       - ./web/dist:/app/web:ro
       - xray-data:/data/xray
+      - media-data:/data/media
       - ${CERT_DIR:-./certs}:/certs:ro
     ports:
       - "${PUBLIC_PORT}:3100"
 
 volumes:
   db-data:
+  media-data:
   waha-sessions:
   waha-media:
   xray-data:

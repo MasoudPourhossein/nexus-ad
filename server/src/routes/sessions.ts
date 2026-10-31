@@ -5,6 +5,7 @@ import { sql } from '../db.js';
 import { HttpError, idParam, notFound, parse } from '../http.js';
 import { normalizePhone } from '../phone.js';
 import { activeProxy } from '../settings.js';
+import { config } from '../config.js';
 import { waha } from '../waha.js';
 
 interface SessionRow {
@@ -35,8 +36,8 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(
       z.object({
         label: z.string().min(1).max(100),
-        ratePerMinute: z.number().int().min(1).max(60).default(10),
-        dailyCap: z.number().int().min(0).max(100000).default(500),
+        ratePerMinute: z.number().int().min(1).max(config.maxRatePerMinute).default(10),
+        dailyCap: z.number().int().min(0).max(config.maxDailyCap).default(5000),
       }),
       request.body,
     );
@@ -89,8 +90,8 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(
       z.object({
         label: z.string().min(1).max(100).optional(),
-        ratePerMinute: z.number().int().min(1).max(60).optional(),
-        dailyCap: z.number().int().min(0).max(100000).optional(),
+        ratePerMinute: z.number().int().min(1).max(config.maxRatePerMinute).optional(),
+        dailyCap: z.number().int().min(0).max(config.maxDailyCap).optional(),
       }),
       request.body,
     );
