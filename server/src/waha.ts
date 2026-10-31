@@ -58,6 +58,9 @@ export const waha = {
   getSession(name: string) {
     return call('GET', `/api/sessions/${encodeURIComponent(name)}`);
   },
+  listGroups(name: string): Promise<any[]> {
+    return call('GET', `/api/${encodeURIComponent(name)}/groups`);
+  },
   createGroup(name: string, subject: string, participants: string[]) {
     return call('POST', `/api/${encodeURIComponent(name)}/groups`, {
       name: subject,

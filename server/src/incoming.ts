@@ -87,6 +87,7 @@ async function onMessage(session: SessionInfo, payload: any): Promise<void> {
   if (!phone) return;
   const body = String(payload.body ?? '');
   const text = normalizeText(body);
+  console.log(`[msg] from=${phone} text=${JSON.stringify(body)} norm=${JSON.stringify(text)}`);
 
   await sql`
     INSERT INTO messages (tenant_id, session_id, direction, phone, content, status, wa_id, short_id, sent_at)
@@ -125,12 +126,17 @@ async function onMessage(session: SessionInfo, payload: any): Promise<void> {
     SELECT id, campaign_id, tag, keywords, match, reply FROM rules
     WHERE tenant_id = ${session.tenant_id} AND active AND (session_id IS NULL OR session_id = ${session.id})
     ORDER BY priority DESC, id`;
+  console.log(`[msg] active rules=${rules.length}`);
   for (const rule of rules) {
     if (!matches(rule, text)) continue;
     if (rule.campaign_id) {
       const got = await sql`SELECT 1 FROM messages WHERE campaign_id = ${rule.campaign_id} AND phone = ${phone} AND direction = 'out' AND sent_at IS NOT NULL LIMIT 1`;
-      if (!got.length) continue;
+      if (!got.length) {
+        console.log(`[msg] rule ${rule.id} matched but ${phone} is not a recipient of campaign ${rule.campaign_id} — skipped`);
+        continue;
+      }
     }
+    console.log(`[msg] rule ${rule.id} fired for ${phone}`);
     if (rule.tag) {
       const campaignId = rule.campaign_id ?? replied[0]?.campaign_id ?? null;
       await sql`

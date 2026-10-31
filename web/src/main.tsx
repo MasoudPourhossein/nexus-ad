@@ -14,6 +14,7 @@ import Campaigns from './pages/Campaigns';
 import Rules from './pages/Rules';
 import Leads from './pages/Leads';
 import Inbox from './pages/Inbox';
+import Groups from './pages/Groups';
 import Developers from './pages/Developers';
 import Settings from './pages/Settings';
 import Tenants from './pages/admin/Tenants';
@@ -45,6 +46,7 @@ function Gate() {
         { path: 'rules', element: <Rules /> },
         { path: 'leads', element: <Leads /> },
         { path: 'inbox', element: <Inbox /> },
+        { path: 'groups', element: <Groups /> },
         { path: 'developers', element: <Developers /> },
         { path: 'settings', element: <Settings /> },
         { path: 'admin/tenants', element: <AdminOnly><Tenants /></AdminOnly> },

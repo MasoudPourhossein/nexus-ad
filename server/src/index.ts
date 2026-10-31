@@ -12,6 +12,7 @@ import { authenticate } from './auth.js';
 import { config } from './config.js';
 import { join as pathJoin } from 'node:path';
 import { migrate, sql } from './db.js';
+import { registerGuard } from './guard.js';
 import { HttpError, sendError } from './http.js';
 import { handleWahaEvent } from './incoming.js';
 import { adminRoutes } from './routes/admin.js';
@@ -37,25 +38,6 @@ function httpsOptions(): { key: Buffer; cert: Buffer } | undefined {
   return undefined;
 }
 
-/** Simple per-IP limiter: protects every public route. */
-function rateLimiter(limitPerMinute: number) {
-  const hits = new Map<string, { n: number; reset: number }>();
-  setInterval(function cleanup() {
-    const now = Date.now();
-    for (const [k, v] of hits) if (v.reset < now) hits.delete(k);
-  }, 60_000).unref();
-  return function check(ip: string): boolean {
-    const now = Date.now();
-    const h = hits.get(ip);
-    if (!h || h.reset < now) {
-      hits.set(ip, { n: 1, reset: now + 60_000 });
-      return true;
-    }
-    h.n += 1;
-    return h.n <= limitPerMinute;
-  };
-}
-
 function errorHandler(app: FastifyInstance): void {
   app.setErrorHandler(function onError(err: any, request, reply) {
     if (err instanceof HttpError) return sendError(reply, err);
@@ -71,20 +53,16 @@ async function buildPublic(): Promise<FastifyInstance> {
     logger: { level: process.env.NEXUS_LOG_LEVEL ?? 'info' },
     trustProxy: process.env.NEXUS_TRUST_PROXY === '1',
     bodyLimit: 10 * 1024 * 1024,
+    requestTimeout: Number(process.env.NEXUS_REQUEST_TIMEOUT_MS ?? 30_000),
+    connectionTimeout: Number(process.env.NEXUS_CONNECTION_TIMEOUT_MS ?? 20_000),
+    maxParamLength: 200,
     ...(https ? { https: https } : {}),
   } as any) as unknown as FastifyInstance;
   errorHandler(app);
-  const allow = rateLimiter(Number(process.env.NEXUS_RATE_LIMIT ?? 600));
-  app.addHook('onRequest', async function guard(request, reply) {
-    if (!allow(request.ip)) return reply.code(429).send({ error: 'rate_limited' });
-    reply.header('x-content-type-options', 'nosniff');
-    reply.header('x-frame-options', 'DENY');
-    reply.header('referrer-policy', 'no-referrer');
-    if (https) reply.header('strict-transport-security', 'max-age=31536000');
-  });
+  registerGuard(app, !!https);
   await app.register(cors, { origin: process.env.NEXUS_CORS_ORIGIN ? process.env.NEXUS_CORS_ORIGIN.split(',') : false });
   await app.register(jwt, { secret: config.jwtSecret });
-  await app.register(multipart, { limits: { fileSize: Number(process.env.NEXUS_MAX_UPLOAD_BYTES ?? 2 * 1024 * 1024 * 1024), files: 1 } });
+  await app.register(multipart, { limits: { fileSize: config.maxUploadBytes, files: 1 } });
 
   await app.register(
     async function api(scope) {
@@ -124,9 +102,14 @@ async function buildPublic(): Promise<FastifyInstance> {
 async function buildInternal(): Promise<FastifyInstance> {
   const app = Fastify({ logger: false, bodyLimit: 50 * 1024 * 1024 });
   app.post('/hooks/waha', async function hook(request, reply) {
-    if ((request.query as any)?.token !== config.webhookSecret) return reply.code(401).send({ error: 'unauthorized' });
-    handleWahaEvent(request.body).catch(function log(err) {
-      console.error('webhook handling failed', err);
+    if ((request.query as any)?.token !== config.webhookSecret) {
+      console.warn('[hook] rejected: bad token');
+      return reply.code(401).send({ error: 'unauthorized' });
+    }
+    const b = request.body as any;
+    console.log(`[hook] event=${b?.event} session=${b?.session}`);
+    handleWahaEvent(b).catch(function log(err) {
+      console.error('[hook] handling failed', err);
     });
     return { ok: true };
   });

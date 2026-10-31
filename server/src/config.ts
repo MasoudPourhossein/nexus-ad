@@ -22,4 +22,9 @@ export const config = {
   mediaDir: process.env.NEXUS_MEDIA_DIR ?? '/data/media',
   maxDailyCap: Number(process.env.NEXUS_MAX_DAILY_CAP ?? 1000000),
   maxRatePerMinute: Number(process.env.NEXUS_MAX_RATE_PER_MINUTE ?? 120),
+  rateLimitPerMin: Number(process.env.NEXUS_RATE_LIMIT ?? 300),
+  maxViolations: Number(process.env.NEXUS_MAX_VIOLATIONS ?? 60),
+  banMinutes: Number(process.env.NEXUS_BAN_MINUTES ?? 30),
+  ipAllowlist: (process.env.NEXUS_IP_ALLOWLIST ?? '').split(',').map(function trim(x) { return x.trim(); }).filter(Boolean),
+  maxUploadBytes: Number(process.env.NEXUS_MAX_UPLOAD_BYTES ?? 100 * 1024 * 1024),
 };

@@ -10,10 +10,16 @@ reachable where it is blocked.
 
 ## Install (Proxmox LXC, Debian/Ubuntu VM)
 
-One command, as root:
+This repository is private, so clone it with your GitHub credentials and run
+the installer from the clone (a `curl | bash` one-liner cannot read a private
+repo), as root:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/MasoudPourhossein/nexus-ad/main/install.sh)
+git clone https://github.com/MasoudPourhossein/nexus-ad /opt/nexus-ad
+```
+
+```bash
+bash /opt/nexus-ad/install.sh
 ```
 
 The installer asks for:
@@ -87,8 +93,9 @@ all future sends. Opted-out numbers are never messaged again. The keywords and
 an optional confirmation reply are configurable per customer.
 
 ### Groups & channels
-Create a WhatsApp group and add members straight from a contact list (added in
-batches to respect WhatsApp limits), and create a channel.
+From the **Groups & channels** page: create a group and add members from a
+contact list or a pasted number list (added in batches to respect WhatsApp
+limits), add members to an existing group, and create a channel.
 
 ### Multi-tenant (resell as a service)
 - **Admin** creates customers with their own email/password.
@@ -128,14 +135,36 @@ first provider; Bale, Rubika and Eitaa can be added without touching the rest.
 
 ---
 
-## Security
+## Security and exposing the port
 
-- Only the single chosen port is exposed. HTTPS is available without 80/443.
-- Login is rate-limited with temporary lockout after repeated failures; all API
-  traffic is per-IP rate-limited.
-- Secrets are generated at install time and stored in `.env` (mode 600).
-- Restrict access further with a firewall, e.g.
-  `ufw allow from YOUR_IP to any port <PORT>`.
+Built-in protections (all on by default, tunable with env vars in `.env`):
+
+| Protection | Default | Env |
+|---|---|---|
+| Per-IP request limit | 300 req/min | `NEXUS_RATE_LIMIT` |
+| Auto-ban after repeated 401/403/404/429 | 60 failures in 10 min → 30 min ban | `NEXUS_MAX_VIOLATIONS`, `NEXUS_BAN_MINUTES` |
+| Login lockout | 5 wrong passwords → 15 min, per IP+email | built in |
+| IP allowlist (dashboard + API) | off | `NEXUS_IP_ALLOWLIST=1.2.3.4,5.6.7.` |
+| Request / connection timeouts | 30 s / 20 s | `NEXUS_REQUEST_TIMEOUT_MS`, `NEXUS_CONNECTION_TIMEOUT_MS` |
+| Upload size cap | 100 MB | `NEXUS_MAX_UPLOAD_BYTES` |
+| Hardening headers | nosniff, DENY framing, no-referrer, HSTS on HTTPS | built in |
+| Secrets | random, generated at install, `.env` mode 600 | — |
+
+Only the one chosen port is exposed. HTTPS works without opening 80/443.
+
+**Opening the port to the internet — do these too:**
+
+1. Firewall with connection rate limiting (Debian/Ubuntu):
+   ```bash
+   apt install -y ufw && ufw default deny incoming && ufw allow ssh && ufw limit <PORT>/tcp && ufw enable
+   ```
+   `ufw limit` drops an IP that opens more than 6 connections in 30 s.
+2. Prefer an allowlist if only you and your site call it:
+   `NEXUS_IP_ALLOWLIST=<your-ip>,<your-server-ip>` in `.env`, then `nexus restart`.
+3. For real DDoS (volumetric floods) no application can help; put the port
+   behind **Cloudflare** (proxied DNS or a Cloudflare Tunnel, which needs no
+   open port at all). The app sets `NEXUS_TRUST_PROXY=1` so client IPs are
+   read correctly behind a proxy.
 
 Use responsibly: message people who expect to hear from you. Mass messaging to
 strangers risks the number being banned, whatever tool sends it.

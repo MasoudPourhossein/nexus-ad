@@ -58,6 +58,7 @@ export function Layout() {
       <Item to="/rules" icon={<Bot size={18} />} label={t('rules')} onClick={close} />
       <Item to="/leads" icon={<Sparkles size={18} />} label={t('leads')} onClick={close} />
       <Item to="/inbox" icon={<Inbox size={18} />} label={t('inbox')} onClick={close} />
+      <Item to="/groups" icon={<Users size={18} />} label={t('groups')} onClick={close} />
       <Item to="/developers" icon={<Code2 size={18} />} label={t('apiKeys')} onClick={close} />
       <Item to="/settings" icon={<Settings size={18} />} label={t('settings')} onClick={close} />
       {me?.role === 'admin' && (

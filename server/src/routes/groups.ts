@@ -28,6 +28,15 @@ export async function groupRoutes(app: FastifyInstance): Promise<void> {
     listId: z.number().int().nullable().optional(),
   });
 
+  app.get('/sessions/:id/groups', async function listGroups(request) {
+    const s = await ownSession(request.tenant.id, idParam(request.params));
+    const groups = await waha.listGroups(s.name);
+    return (Array.isArray(groups) ? groups : []).map(function pick(g: any) {
+      const id = g?.id?._serialized ?? g?.id ?? g?.JID ?? '';
+      return { id: String(id), name: g?.name ?? g?.subject ?? g?.Name ?? String(id), participants: g?.participants?.length ?? g?.Participants?.length ?? null };
+    });
+  });
+
   app.post('/sessions/:id/groups', async function createGroup(request) {
     const s = await ownSession(request.tenant.id, idParam(request.params));
     const body = parse(
