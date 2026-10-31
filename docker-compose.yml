@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: nexus
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "nexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  waha:
+    image: devlikeapro/waha:latest
+    restart: unless-stopped
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: ${WAHA_ENGINE}
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WHATSAPP_RESTART_ALL_SESSIONS: "true"
+      WAHA_PRINT_QR: "false"
+    volumes: [waha-sessions:/app/.sessions, waha-media:/app/.media]
+
+  nexus:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    cap_add: [NET_ADMIN]
+    environment:
+      NEXUS_DATABASE_URL: postgres://nexus:${DB_PASSWORD}@db:5432/nexus
+      NEXUS_JWT_SECRET: ${JWT_SECRET}
+      NEXUS_WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      NEXUS_INTERNAL_URL: http://nexus:3101
+      NEXUS_PROXY_ADVERTISE: nexus:10809
+      NEXUS_WAHA_URL: http://waha:3000
+      NEXUS_WAHA_API_KEY: ${WAHA_API_KEY}
+      NEXUS_WAHA_ENGINE: ${WAHA_ENGINE}
+      NEXUS_ADMIN_EMAIL: ${ADMIN_EMAIL}
+      NEXUS_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      NEXUS_WEB_DIR: /app/web
+      NEXUS_TRUST_PROXY: "1"
+      NEXUS_TLS_CERT: ${TLS_CERT}
+      NEXUS_TLS_KEY: ${TLS_KEY}
+      NEXUS_PORT: "3100"
+      NEXUS_XRAY_CONFIG: /data/xray/config.json
+      NEXUS_XRAY_HTTP_PORT: "10809"
+    volumes:
+      - ./web/dist:/app/web:ro
+      - xray-data:/data/xray
+      - ${CERT_DIR:-./certs}:/certs:ro
+    ports:
+      - "${PUBLIC_PORT}:3100"
+
+volumes:
+  db-data:
+  waha-sessions:
+  waha-media:
+  xray-data:

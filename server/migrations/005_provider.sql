@@ -1,0 +1,1 @@
+ALTER TABLE wa_sessions ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'whatsapp';
