@@ -56,6 +56,18 @@ services:
     ports:
       - "${PUBLIC_PORT}:3100"
 
+  # Optional: expose the dashboard through a Cloudflare Tunnel (no open port,
+  # works behind CGNAT, DDoS protection + real TLS at Cloudflare's edge).
+  # Enable with COMPOSE_PROFILES=tunnel and TUNNEL_TOKEN=... in .env
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on: [nexus]
+    profiles: [tunnel]
+
 volumes:
   db-data:
   media-data:

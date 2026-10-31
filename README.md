@@ -161,10 +161,36 @@ Only the one chosen port is exposed. HTTPS works without opening 80/443.
    `ufw limit` drops an IP that opens more than 6 connections in 30 s.
 2. Prefer an allowlist if only you and your site call it:
    `NEXUS_IP_ALLOWLIST=<your-ip>,<your-server-ip>` in `.env`, then `nexus restart`.
-3. For real DDoS (volumetric floods) no application can help; put the port
-   behind **Cloudflare** (proxied DNS or a Cloudflare Tunnel, which needs no
-   open port at all). The app sets `NEXUS_TRUST_PROXY=1` so client IPs are
-   read correctly behind a proxy.
+3. For real DDoS (volumetric floods) no application can help; put it behind
+   **Cloudflare**. The app sets `NEXUS_TRUST_PROXY=1` so client IPs are read
+   correctly behind a proxy.
+
+### Cloudflare Tunnel (recommended; also the fix for CGNAT)
+
+Most home ISPs put you behind CGNAT, so modem port-forwarding never works from
+the internet. A tunnel needs no open port at all and gives you Cloudflare's
+DDoS protection and a real HTTPS certificate.
+
+1. Add a domain to Cloudflare (free plan is fine).
+2. Cloudflare dashboard → **Zero Trust → Networks → Tunnels → Create a tunnel**
+   (Cloudflared) → name it → copy the **token** from the install command.
+3. **Public hostname**: subdomain e.g. `wa.yourdomain.com` → service type
+   **HTTPS**, URL `nexus:3100`, and under *Additional application settings →
+   TLS* turn on **No TLS Verify** (the app uses a self-signed cert internally).
+   If you installed without HTTPS, use type **HTTP**, URL `nexus:3100`.
+4. On the server, add to `.env`:
+   ```
+   COMPOSE_PROFILES=tunnel
+   TUNNEL_TOKEN=<the token>
+   ```
+   then:
+   ```bash
+   nexus up
+   ```
+5. Open `https://wa.yourdomain.com`. You can now close the modem port-forward
+   and even remove the `ufw limit <PORT>` rule; nothing needs to reach the
+   LXC directly. Optionally restrict the hostname to yourself with a Cloudflare
+   Access policy (email one-time code) for a second login layer.
 
 Use responsibly: message people who expect to hear from you. Mass messaging to
 strangers risks the number being banned, whatever tool sends it.
