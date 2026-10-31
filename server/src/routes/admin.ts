@@ -9,7 +9,7 @@ import { getSetting, setSetting, startActiveProxy, syncSessionsProxy } from '../
 import { activateBest, failoverState } from '../failover.js';
 import { waha } from '../waha.js';
 import { XRAY_ADVERTISE } from '../xray.js';
-import { parseLink, probeWhatsApp, testOutbound, testThroughProxy, xrayStatus } from '../xray.js';
+import { judgeWhatsApp, parseLink, probeHttps, probeWhatsApp, testOutboundFull, testThroughProxy, xrayStatus } from '../xray.js';
 
 const planSchema = z.object({
   name: z.string().min(1).max(100),
@@ -167,7 +167,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get('/admin/proxy', async function proxies() {
-    const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
+    const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, wa_ok, wa_note, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
     const sub = await getSetting<string | null>('subscription_url', null);
     const failover = await getSetting<boolean>('proxy_failover', true);
     // Ask WAHA what proxy each session is really running with, so the UI never lies.
@@ -201,15 +201,16 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/admin/proxy/test-all', async function testAll() {
     const rows = await sql<{ id: number; name: string; outbound: Record<string, any> }[]>`SELECT id, name, outbound FROM proxies ORDER BY id`;
-    const results: { id: number; name: string; ok: boolean; ms: number | null; error?: string }[] = [];
+    const results: any[] = [];
     for (const r of rows) {
       try {
-        const ms = await testOutbound(r.outbound);
-        await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${r.id}`;
-        results.push({ id: r.id, name: r.name, ok: true, ms: ms });
+        const t = await testOutboundFull(r.outbound);
+        await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${t.ms}, last_test_at = now(), wa_ok = ${t.wa.ok}, wa_note = ${t.wa.note} WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: true, ms: t.ms, wa: t.wa });
       } catch (err: any) {
-        await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now() WHERE id = ${r.id}`;
-        results.push({ id: r.id, name: r.name, ok: false, ms: null, error: String(err?.message ?? err).slice(0, 120) });
+        const note = String(err?.message ?? err).slice(0, 120);
+        await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now(), wa_ok = FALSE, wa_note = ${note} WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: false, ms: null, error: note });
       }
     }
     return { results: results, xray: xrayStatus() };
@@ -235,18 +236,25 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.post('/admin/proxy/check-whatsapp', async function checkWhatsApp() {
     const active = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
     if (!active.length) throw new HttpError(400, 'no_active_proxy');
+    // Control: a big, unblocked site through the same proxy proves the tunnel itself works.
+    let control: { ok: boolean; note: string };
     try {
-      const r = await probeWhatsApp();
-      const blocked = r.status === 403 || r.status === 405 || r.status === 429;
-      const stalled = !blocked && !r.complete && r.bytes < 20_000;
-      return {
-        ok: !blocked && !stalled,
-        status: r.status, line: r.line, ms: r.ms, bytes: r.bytes, complete: r.complete,
-        verdict: blocked ? 'ip_blocked_by_whatsapp' : stalled ? 'stalled_mtu' : 'reachable',
-      };
+      const c = await probeHttps('www.cloudflare.com', undefined, 12_000);
+      control = { ok: c.status > 0 && (c.complete || c.bytes >= 20_000), note: `HTTP ${c.status}, ${c.bytes} B` };
     } catch (err: any) {
-      return { ok: false, status: null, error: String(err?.message ?? err).slice(0, 160), verdict: 'proxy_or_network_error' };
+      control = { ok: false, note: String(err?.message ?? err).slice(0, 120) };
     }
+    let wa;
+    try {
+      wa = judgeWhatsApp(await probeWhatsApp());
+    } catch (err) {
+      wa = judgeWhatsApp(null, err);
+    }
+    await sql`UPDATE proxies SET wa_ok = ${wa.ok}, wa_note = ${wa.note} WHERE id = ${active[0].id}`;
+    let verdict: string = wa.verdict;
+    if (!wa.ok && !control.ok) verdict = 'proxy_or_network_error';
+    else if (!wa.ok && control.ok) verdict = wa.verdict === 'ip_blocked_by_whatsapp' ? 'ip_blocked_by_whatsapp' : 'whatsapp_blocks_this_ip';
+    return { ok: wa.ok, verdict: verdict, whatsapp: wa, control: control, status: wa.status, ms: wa.ms, bytes: wa.bytes, line: wa.note };
   });
 
   app.post('/admin/proxy/failover', async function setFailover(request) {

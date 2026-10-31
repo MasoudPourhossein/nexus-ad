@@ -50,7 +50,7 @@ export default function Vpn() {
           <button className="btn-outline" disabled={!!busy || !installed} onClick={() => run('testall', async () => { await api('/admin/proxy/test-all', { method: 'POST' }); })}>
             <Activity size={16} /> {busy === 'testall' ? t('testing') : t('testAll')}
           </button>
-          <button className="btn-primary" disabled={!!busy || !installed} onClick={() => run('auto', async () => { const r = await api('/admin/proxy/auto', { method: 'POST' }); toast.ok(`${t('bestPicked')}: ${r.best.name} (${r.best.ms}ms)`); })}>
+          <button className="btn-primary" disabled={!!busy || !installed} onClick={() => run('auto', async () => { const r = await api('/admin/proxy/auto', { method: 'POST' }); if (r.best.waOk) toast.ok(`${t('bestPicked')}: ${r.best.name} (${r.best.ms}ms)`); else toast.err(new Error(t('noWaConfig'))); })}>
             <Zap size={16} /> {busy === 'auto' ? t('testing') : t('autoBest')}
           </button>
           <button className="btn-outline" onClick={() => setAdding(true)}><Plus size={16} /> {t('addConfigs')}</button>
@@ -79,9 +79,10 @@ export default function Vpn() {
         </div>
         {wa && (
           <div className={`rounded-xl px-4 py-3 text-sm ${wa.verdict === 'reachable' ? 'bg-brand-500/10 text-brand-700 dark:text-brand-300' : 'bg-rose-500/10 text-rose-700 dark:text-rose-300'}`}>
-            <div className="font-semibold">{wa.verdict === 'reachable' ? t('waReachable') : wa.verdict === 'ip_blocked_by_whatsapp' ? t('waBlocked') : wa.verdict === 'stalled_mtu' ? t('waStalled') : t('waNetErr')}</div>
+            <div className="font-semibold">{wa.verdict === 'reachable' ? t('waReachable') : wa.verdict === 'ip_blocked_by_whatsapp' || wa.verdict === 'whatsapp_blocks_this_ip' ? t('waIpBlocked') : wa.verdict === 'stalled' ? t('waStalled') : t('waNetErr')}</div>
             <div className="mt-1 text-xs opacity-80 ltr font-mono">{wa.line ?? wa.error} {wa.ms ? `· ${wa.ms} ms` : ''} {wa.bytes !== undefined ? `· ${wa.bytes} B${wa.complete ? '' : ' (incomplete)'}` : ''}</div>
-            {wa.verdict === 'ip_blocked_by_whatsapp' && <div className="mt-1 text-xs opacity-80">{t('ipBlockedHint')}</div>}
+            {wa.control && <div className="mt-1 text-xs opacity-80">{t('waCtl')}: {wa.control.ok ? 'OK' : 'FAIL'} · <span className="ltr font-mono">{wa.control.note}</span></div>}
+            {(wa.verdict === 'ip_blocked_by_whatsapp' || wa.verdict === 'whatsapp_blocks_this_ip') && <div className="mt-1 text-xs opacity-80">{t('ipBlockedHint')}</div>}
           </div>
         )}
         {data?.sessions?.length > 0 && (
@@ -117,12 +118,19 @@ export default function Vpn() {
           <table className="table">
             <thead><tr><th>{t('name')}</th><th>Protocol</th><th>Transport</th><th>{t('latency')}</th><th /></tr></thead>
             <tbody>
-              {[...data.items].sort((a: any, b: any) => (a.active ? -1 : b.active ? 1 : (a.last_test_ms ?? 1e9) - (b.last_test_ms ?? 1e9))).map((p: any) => (
+              {[...data.items].sort((a: any, b: any) => (a.active ? -1 : b.active ? 1 : (b.wa_ok === true ? 1 : 0) - (a.wa_ok === true ? 1 : 0) || (a.last_test_ms ?? 1e9) - (b.last_test_ms ?? 1e9))).map((p: any) => (
                 <tr key={p.id} className={p.active ? 'bg-brand-500/5' : ''}>
                   <td><div className="flex items-center gap-2 font-medium">{p.active && <span className="h-2 w-2 rounded-full bg-brand-500" />}{p.name}</div></td>
                   <td><span className="badge bg-slate-500/10 uppercase">{p.protocol}</span></td>
                   <td className="text-xs text-slate-500">{p.network}{p.security !== 'none' && ` · ${p.security}`}</td>
-                  <td className="text-xs">{p.last_test_at ? (p.last_test_ok ? <span className="font-semibold text-brand-500">{p.last_test_ms} ms</span> : <span className="text-rose-500">{t('error')}</span>) : '—'}<div className="text-[10px] text-slate-400">{p.last_test_at ? date(p.last_test_at) : ''}</div></td>
+                  <td className="text-xs">
+                    <div className="flex items-center gap-2">
+                      {p.last_test_at ? (p.last_test_ok ? <span className="font-semibold text-brand-500">{p.last_test_ms} ms</span> : <span className="text-rose-500">{t('error')}</span>) : '—'}
+                      {p.wa_ok === true && <span className="badge bg-brand-500/15 text-brand-700 dark:text-brand-300">{t('waOk')}</span>}
+                      {p.wa_ok === false && <span className="badge bg-rose-500/10 text-rose-600" title={p.wa_note ?? ''}>{t('waBad')}</span>}
+                    </div>
+                    <div className="text-[10px] text-slate-400">{p.last_test_at ? date(p.last_test_at) : ''}</div>
+                  </td>
                   <td className="text-end">
                     <div className="flex justify-end gap-1">
                       {!p.active && <button className="btn-outline !px-3 !py-1.5" disabled={!!busy} onClick={() => run('act', async () => { await api(`/admin/proxy/${p.id}/activate`, { method: 'POST' }); })}><Power size={14} /> {t('activate')}</button>}

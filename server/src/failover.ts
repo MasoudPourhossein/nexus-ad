@@ -1,6 +1,6 @@
 import { sql } from './db.js';
 import { getSetting, startActiveProxy, syncSessionsProxy } from './settings.js';
-import { testOutbound, testThroughProxy, xrayInstalled, xrayStatus } from './xray.js';
+import { testOutboundFull, testThroughProxy, xrayInstalled, xrayStatus } from './xray.js';
 
 interface ProxyRow {
   id: number;
@@ -9,16 +9,18 @@ interface ProxyRow {
 }
 
 /** Test every saved config and activate the fastest working one. */
-export async function activateBest(): Promise<{ id: number; name: string; ms: number } | null> {
+export async function activateBest(): Promise<{ id: number; name: string; ms: number; waOk: boolean } | null> {
   const rows = await sql<ProxyRow[]>`SELECT id, name, outbound FROM proxies ORDER BY id`;
-  let best: { id: number; name: string; ms: number } | null = null;
+  let best: { id: number; name: string; ms: number; waOk: boolean } | null = null;
   for (const r of rows) {
     try {
-      const ms = await testOutbound(r.outbound);
-      await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${r.id}`;
-      if (!best || ms < best.ms) best = { id: r.id, name: r.name, ms: ms };
-    } catch {
-      await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now() WHERE id = ${r.id}`;
+      const t = await testOutboundFull(r.outbound);
+      await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${t.ms}, last_test_at = now(), wa_ok = ${t.wa.ok}, wa_note = ${t.wa.note} WHERE id = ${r.id}`;
+      const cand = { id: r.id, name: r.name, ms: t.ms, waOk: t.wa.ok };
+      // WhatsApp-reachable configs always beat unreachable ones; then lowest ping wins.
+      if (!best || (cand.waOk && !best.waOk) || (cand.waOk === best.waOk && cand.ms < best.ms)) best = cand;
+    } catch (err: any) {
+      await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now(), wa_ok = FALSE, wa_note = ${String(err?.message ?? err).slice(0, 120)} WHERE id = ${r.id}`;
     }
   }
   if (!best) return null;

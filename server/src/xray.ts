@@ -402,8 +402,7 @@ export async function testOutbound(outbound: Record<string, any>, timeoutMs = 9_
  * Returns the HTTP status WhatsApp answered with. 2xx/3xx = reachable; 403/405/429 = this
  * exit IP is refused by WhatsApp; errors = proxy/network problem.
  */
-export function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 15_000): Promise<{ ms: number; status: number; line: string; bytes: number; complete: boolean }> {
-  const target = 'web.whatsapp.com';
+export function probeHttps(target: string, port = XRAY_HTTP_PORT, timeoutMs = 15_000): Promise<{ ms: number; status: number; line: string; bytes: number; complete: boolean }> {
   const started = Date.now();
   return new Promise(function run(resolve, reject) {
     const socket = net.connect(port, '127.0.0.1');
@@ -452,4 +451,61 @@ export function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 15_000): Promis
       secure.once('close', function onClose() { finish(true); });
     });
   });
+}
+
+export function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 15_000) {
+  return probeHttps('web.whatsapp.com', port, timeoutMs);
+}
+
+export interface WaVerdict {
+  ok: boolean;
+  verdict: 'reachable' | 'ip_blocked_by_whatsapp' | 'stalled' | 'error';
+  status: number | null;
+  bytes: number;
+  ms: number | null;
+  note: string;
+}
+
+/** Judge a WhatsApp probe result. */
+export function judgeWhatsApp(r: { status: number; bytes: number; complete: boolean; ms: number } | null, err?: unknown): WaVerdict {
+  if (!r) {
+    const msg = String((err as any)?.message ?? err ?? 'error');
+    const stalled = /timeout|closed without response/i.test(msg);
+    return { ok: false, verdict: stalled ? 'stalled' : 'error', status: null, bytes: 0, ms: null, note: msg.slice(0, 120) };
+  }
+  const blocked = r.status === 403 || r.status === 405 || r.status === 429;
+  if (blocked) return { ok: false, verdict: 'ip_blocked_by_whatsapp', status: r.status, bytes: r.bytes, ms: r.ms, note: `HTTP ${r.status}` };
+  if (!r.complete && r.bytes < 20_000) return { ok: false, verdict: 'stalled', status: r.status, bytes: r.bytes, ms: r.ms, note: `stalled after ${r.bytes} B` };
+  return { ok: true, verdict: 'reachable', status: r.status, bytes: r.bytes, ms: r.ms, note: `HTTP ${r.status}, ${r.bytes} B` };
+}
+
+/** Spawn a throwaway Xray for one outbound and measure both latency and real WhatsApp reachability. */
+export async function testOutboundFull(outbound: Record<string, any>): Promise<{ ms: number; wa: WaVerdict }> {
+  if (!xrayInstalled()) throw new Error('xray_not_installed');
+  const port = await freePort();
+  const cfg = {
+    log: { loglevel: 'none' },
+    inbounds: [{ tag: 'http-in', listen: '127.0.0.1', port: port, protocol: 'http', settings: {} }],
+    outbounds: [{ ...outbound, tag: 'proxy' }, { protocol: 'freedom', tag: 'direct' }],
+  };
+  const file = join(tmpdir(), `xray-test-${port}.json`);
+  await writeFile(file, JSON.stringify(cfg));
+  const proc = spawn(XRAY_BIN, ['run', '-c', file], { stdio: ['ignore', 'ignore', 'pipe'] });
+  let err = '';
+  proc.stderr?.on('data', function onErr(b: Buffer) { err += b.toString().slice(-300); });
+  try {
+    await new Promise((r) => setTimeout(r, 700));
+    if (proc.exitCode !== null) throw new Error(`xray exited: ${err.trim() || 'bad config'}`);
+    const ms = await testThroughProxy('web.whatsapp.com', 9_000, port);
+    let wa: WaVerdict;
+    try {
+      wa = judgeWhatsApp(await probeWhatsApp(port, 12_000));
+    } catch (e) {
+      wa = judgeWhatsApp(null, e);
+    }
+    return { ms: ms, wa: wa };
+  } finally {
+    proc.kill('SIGKILL');
+    await unlink(file).catch(function ignore() {});
+  }
 }

@@ -62051,33 +62051,7 @@ function freePort() {
     srv.on("error", reject);
   });
 }
-async function testOutbound(outbound, timeoutMs = 9e3) {
-  if (!xrayInstalled()) throw new Error("xray_not_installed");
-  const port = await freePort();
-  const cfg = {
-    log: { loglevel: "none" },
-    inbounds: [{ tag: "http-in", listen: "127.0.0.1", port, protocol: "http", settings: {} }],
-    outbounds: [{ ...outbound, tag: "proxy" }, { protocol: "freedom", tag: "direct" }]
-  };
-  const file2 = join2(tmpdir(), `xray-test-${port}.json`);
-  await writeFile(file2, JSON.stringify(cfg));
-  const proc = spawn(XRAY_BIN, ["run", "-c", file2], { stdio: ["ignore", "ignore", "pipe"] });
-  let err = "";
-  proc.stderr?.on("data", function onErr(b) {
-    err += b.toString().slice(-300);
-  });
-  try {
-    await new Promise((r) => setTimeout(r, 700));
-    if (proc.exitCode !== null) throw new Error(`xray exited: ${err.trim() || "bad config"}`);
-    return await testThroughProxy("web.whatsapp.com", timeoutMs, port);
-  } finally {
-    proc.kill("SIGKILL");
-    await unlink(file2).catch(function ignore2() {
-    });
-  }
-}
-function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 15e3) {
-  const target = "web.whatsapp.com";
+function probeHttps(target, port = XRAY_HTTP_PORT, timeoutMs = 15e3) {
   const started = Date.now();
   return new Promise(function run2(resolve, reject) {
     const socket = net2.connect(port, "127.0.0.1");
@@ -62142,6 +62116,52 @@ Connection: close\r
       });
     });
   });
+}
+function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 15e3) {
+  return probeHttps("web.whatsapp.com", port, timeoutMs);
+}
+function judgeWhatsApp(r, err) {
+  if (!r) {
+    const msg = String(err?.message ?? err ?? "error");
+    const stalled = /timeout|closed without response/i.test(msg);
+    return { ok: false, verdict: stalled ? "stalled" : "error", status: null, bytes: 0, ms: null, note: msg.slice(0, 120) };
+  }
+  const blocked = r.status === 403 || r.status === 405 || r.status === 429;
+  if (blocked) return { ok: false, verdict: "ip_blocked_by_whatsapp", status: r.status, bytes: r.bytes, ms: r.ms, note: `HTTP ${r.status}` };
+  if (!r.complete && r.bytes < 2e4) return { ok: false, verdict: "stalled", status: r.status, bytes: r.bytes, ms: r.ms, note: `stalled after ${r.bytes} B` };
+  return { ok: true, verdict: "reachable", status: r.status, bytes: r.bytes, ms: r.ms, note: `HTTP ${r.status}, ${r.bytes} B` };
+}
+async function testOutboundFull(outbound) {
+  if (!xrayInstalled()) throw new Error("xray_not_installed");
+  const port = await freePort();
+  const cfg = {
+    log: { loglevel: "none" },
+    inbounds: [{ tag: "http-in", listen: "127.0.0.1", port, protocol: "http", settings: {} }],
+    outbounds: [{ ...outbound, tag: "proxy" }, { protocol: "freedom", tag: "direct" }]
+  };
+  const file2 = join2(tmpdir(), `xray-test-${port}.json`);
+  await writeFile(file2, JSON.stringify(cfg));
+  const proc = spawn(XRAY_BIN, ["run", "-c", file2], { stdio: ["ignore", "ignore", "pipe"] });
+  let err = "";
+  proc.stderr?.on("data", function onErr(b) {
+    err += b.toString().slice(-300);
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 700));
+    if (proc.exitCode !== null) throw new Error(`xray exited: ${err.trim() || "bad config"}`);
+    const ms = await testThroughProxy("web.whatsapp.com", 9e3, port);
+    let wa;
+    try {
+      wa = judgeWhatsApp(await probeWhatsApp(port, 12e3));
+    } catch (e) {
+      wa = judgeWhatsApp(null, e);
+    }
+    return { ms, wa };
+  } finally {
+    proc.kill("SIGKILL");
+    await unlink(file2).catch(function ignore2() {
+    });
+  }
 }
 
 // src/waha.ts
@@ -62311,11 +62331,12 @@ async function activateBest() {
   let best = null;
   for (const r of rows) {
     try {
-      const ms = await testOutbound(r.outbound);
-      await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${r.id}`;
-      if (!best || ms < best.ms) best = { id: r.id, name: r.name, ms };
-    } catch {
-      await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now() WHERE id = ${r.id}`;
+      const t = await testOutboundFull(r.outbound);
+      await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${t.ms}, last_test_at = now(), wa_ok = ${t.wa.ok}, wa_note = ${t.wa.note} WHERE id = ${r.id}`;
+      const cand = { id: r.id, name: r.name, ms: t.ms, waOk: t.wa.ok };
+      if (!best || cand.waOk && !best.waOk || cand.waOk === best.waOk && cand.ms < best.ms) best = cand;
+    } catch (err) {
+      await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now(), wa_ok = FALSE, wa_note = ${String(err?.message ?? err).slice(0, 120)} WHERE id = ${r.id}`;
     }
   }
   if (!best) return null;
@@ -82735,7 +82756,7 @@ async function adminRoutes(app) {
     return { ok: true };
   });
   app.get("/admin/proxy", async function proxies() {
-    const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
+    const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, wa_ok, wa_note, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
     const sub = await getSetting("subscription_url", null);
     const failover = await getSetting("proxy_failover", true);
     const sessionRows = await sql`SELECT id, label, name FROM wa_sessions ORDER BY id`;
@@ -82768,12 +82789,13 @@ async function adminRoutes(app) {
     const results = [];
     for (const r of rows) {
       try {
-        const ms = await testOutbound(r.outbound);
-        await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${r.id}`;
-        results.push({ id: r.id, name: r.name, ok: true, ms });
+        const t = await testOutboundFull(r.outbound);
+        await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${t.ms}, last_test_at = now(), wa_ok = ${t.wa.ok}, wa_note = ${t.wa.note} WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: true, ms: t.ms, wa: t.wa });
       } catch (err) {
-        await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now() WHERE id = ${r.id}`;
-        results.push({ id: r.id, name: r.name, ok: false, ms: null, error: String(err?.message ?? err).slice(0, 120) });
+        const note = String(err?.message ?? err).slice(0, 120);
+        await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now(), wa_ok = FALSE, wa_note = ${note} WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: false, ms: null, error: note });
       }
     }
     return { results, xray: xrayStatus() };
@@ -82796,22 +82818,24 @@ async function adminRoutes(app) {
   app.post("/admin/proxy/check-whatsapp", async function checkWhatsApp() {
     const active2 = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
     if (!active2.length) throw new HttpError(400, "no_active_proxy");
+    let control;
     try {
-      const r = await probeWhatsApp();
-      const blocked = r.status === 403 || r.status === 405 || r.status === 429;
-      const stalled = !blocked && !r.complete && r.bytes < 2e4;
-      return {
-        ok: !blocked && !stalled,
-        status: r.status,
-        line: r.line,
-        ms: r.ms,
-        bytes: r.bytes,
-        complete: r.complete,
-        verdict: blocked ? "ip_blocked_by_whatsapp" : stalled ? "stalled_mtu" : "reachable"
-      };
+      const c2 = await probeHttps("www.cloudflare.com", void 0, 12e3);
+      control = { ok: c2.status > 0 && (c2.complete || c2.bytes >= 2e4), note: `HTTP ${c2.status}, ${c2.bytes} B` };
     } catch (err) {
-      return { ok: false, status: null, error: String(err?.message ?? err).slice(0, 160), verdict: "proxy_or_network_error" };
+      control = { ok: false, note: String(err?.message ?? err).slice(0, 120) };
     }
+    let wa;
+    try {
+      wa = judgeWhatsApp(await probeWhatsApp());
+    } catch (err) {
+      wa = judgeWhatsApp(null, err);
+    }
+    await sql`UPDATE proxies SET wa_ok = ${wa.ok}, wa_note = ${wa.note} WHERE id = ${active2[0].id}`;
+    let verdict = wa.verdict;
+    if (!wa.ok && !control.ok) verdict = "proxy_or_network_error";
+    else if (!wa.ok && control.ok) verdict = wa.verdict === "ip_blocked_by_whatsapp" ? "ip_blocked_by_whatsapp" : "whatsapp_blocks_this_ip";
+    return { ok: wa.ok, verdict, whatsapp: wa, control, status: wa.status, ms: wa.ms, bytes: wa.bytes, line: wa.note };
   });
   app.post("/admin/proxy/failover", async function setFailover(request) {
     const b = parse6(external_exports.object({ enabled: external_exports.boolean() }), request.body);
