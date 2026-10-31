@@ -12,6 +12,7 @@ import { authenticate } from './auth.js';
 import { config } from './config.js';
 import { join as pathJoin } from 'node:path';
 import { migrate, sql } from './db.js';
+import { startProxyWatchdog, stopProxyWatchdog } from './failover.js';
 import { registerGuard } from './guard.js';
 import { HttpError, sendError } from './http.js';
 import { handleWahaEvent } from './incoming.js';
@@ -145,8 +146,10 @@ async function main(): Promise<void> {
   const app = await buildPublic();
   await app.listen({ port: config.port, host: '0.0.0.0' });
   startScheduler(config.schedulerTickMs);
+  startProxyWatchdog(Number(process.env.NEXUS_PROXY_CHECK_SECONDS ?? 60));
   async function shutdown(): Promise<void> {
     stopScheduler();
+    stopProxyWatchdog();
     await stopXray();
     await app.close();
     await internal.close();

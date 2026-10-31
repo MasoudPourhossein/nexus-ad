@@ -5670,7 +5670,7 @@ var require_buffer = __commonJS({
       const isCompatible = typeof data === "object" && data.constructor.name === "EncoderBuffer" && typeof data.length === "number" && typeof data.join === "function";
       return isCompatible;
     };
-    EncoderBuffer.prototype.join = function join4(out, offset) {
+    EncoderBuffer.prototype.join = function join5(out, offset) {
       if (!out)
         out = Buffer2.alloc(this.length);
       if (!offset)
@@ -12607,7 +12607,7 @@ var require_multipart2 = __commonJS({
     var os2 = __require("node:os");
     var fp = require_fastify_plugin();
     var { createWriteStream: createWriteStream2 } = __require("node:fs");
-    var { unlink } = __require("node:fs/promises");
+    var { unlink: unlink2 } = __require("node:fs/promises");
     var path = __require("node:path");
     var { generateId } = require_generateId();
     var createError = require_error2();
@@ -12988,7 +12988,7 @@ var require_multipart2 = __commonJS({
           parts2 = this.parts(options2);
         }
         this.savedRequestFiles = [];
-        const tmpdir = options2?.tmpdir || os2.tmpdir();
+        const tmpdir2 = options2?.tmpdir || os2.tmpdir();
         this.tmpUploads = [];
         let i = 0;
         let target;
@@ -12998,7 +12998,7 @@ var require_multipart2 = __commonJS({
             if (!part2.file) {
               continue;
             }
-            const filepath = path.join(tmpdir, generateId() + path.extname(part2.filename || "file" + i++));
+            const filepath = path.join(tmpdir2, generateId() + path.extname(part2.filename || "file" + i++));
             target = createWriteStream2(filepath);
             this.tmpUploads.push(filepath);
             await pump(part2.file, target);
@@ -13051,7 +13051,7 @@ var require_multipart2 = __commonJS({
         for (let i = 0; i < this.tmpUploads.length; ++i) {
           const filepath = this.tmpUploads[i];
           try {
-            await unlink(filepath);
+            await unlink2(filepath);
           } catch (error63) {
             this.log.error(error63, "Could not delete file");
           }
@@ -17603,7 +17603,7 @@ var require_send = __commonJS({
     var { parseTokenList } = require_parseTokenList();
     var { createHttpError } = require_createHttpError();
     var extname = path.extname;
-    var join4 = path.join;
+    var join5 = path.join;
     var normalize = path.normalize;
     var resolve = path.resolve;
     var sep = path.sep;
@@ -17698,7 +17698,7 @@ var require_send = __commonJS({
           return { statusCode: 403 };
         }
         parts2 = path2.split(sep);
-        path2 = normalize(join4(root, path2));
+        path2 = normalize(join5(root, path2));
       } else {
         if (UP_PATH_REGEXP.test(path2)) {
           debug('malicious path "%s"', path2);
@@ -17984,7 +17984,7 @@ var require_send = __commonJS({
       let err;
       for (let i = 0; i < options.index.length; i++) {
         const index = options.index[i];
-        const p2 = join4(path2, index);
+        const p2 = join5(path2, index);
         const { error: error63, stat } = await tryStat(p2);
         if (error63) {
           err = error63;
@@ -19825,7 +19825,7 @@ var require_plugin = __commonJS({
       const name = this.name;
       let completed = false;
       this.options = typeof this.options === "function" ? this.options(this.server) : this.options;
-      let timer2 = null;
+      let timer3 = null;
       const done2 = (execErr) => {
         if (completed) {
           debug("loading complete", name);
@@ -19838,16 +19838,16 @@ var require_plugin = __commonJS({
           debug("exec completed", name);
         }
         completed = true;
-        if (timer2) {
-          clearTimeout(timer2);
+        if (timer3) {
+          clearTimeout(timer3);
         }
         callback(execErr);
       };
       if (this.timeout > 0) {
         debug("setting up timeout", name, this.timeout);
-        timer2 = setTimeout(function() {
+        timer3 = setTimeout(function() {
           debug("timed out", name);
-          timer2 = null;
+          timer3 = null;
           const readyTimeoutErr = new AVV_ERR_PLUGIN_EXEC_TIMEOUT(name);
           readyTimeoutErr.fn = func;
           done2(readyTimeoutErr);
@@ -20435,9 +20435,9 @@ var require_avvio = __commonJS({
     function timeoutCall(func, rootErr, context3, cb) {
       const name = func.unwrappedName ?? func.name;
       debug("setting up ready timeout", name, this._opts.timeout);
-      let timer2 = setTimeout(() => {
+      let timer3 = setTimeout(() => {
         debug("timed out", name);
-        timer2 = null;
+        timer3 = null;
         const toutErr = new AVV_ERR_READY_TIMEOUT(name);
         toutErr.fn = func;
         this._error = toutErr;
@@ -20449,9 +20449,9 @@ var require_avvio = __commonJS({
         func(rootErr, context3, timeoutCb.bind(this));
       }
       function timeoutCb(err) {
-        if (timer2) {
-          clearTimeout(timer2);
-          timer2 = null;
+        if (timer3) {
+          clearTimeout(timer3);
+          timer3 = null;
           this._error = err;
           process.nextTick(cb, this._error);
         } else {
@@ -26441,7 +26441,7 @@ var require_thread_stream = __commonJS({
     var { version: version2 } = require_package();
     var { EventEmitter } = __require("events");
     var { Worker } = __require("worker_threads");
-    var { join: join4 } = __require("path");
+    var { join: join5 } = __require("path");
     var { pathToFileURL } = __require("url");
     var { wait } = require_wait();
     var {
@@ -26492,7 +26492,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join4(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join5(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         name: opts.workerOpts?.name || "thread-stream",
@@ -26958,9 +26958,9 @@ var require_transport = __commonJS({
   "node_modules/pino/lib/transport.js"(exports, module) {
     "use strict";
     var { createRequire } = __require("module");
-    var { existsSync: existsSync2 } = __require("node:fs");
+    var { existsSync: existsSync3 } = __require("node:fs");
     var getCallers = require_caller();
-    var { join: join4, isAbsolute, sep } = __require("node:path");
+    var { join: join5, isAbsolute, sep } = __require("node:path");
     var { fileURLToPath: fileURLToPath3 } = __require("node:url");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
@@ -27033,7 +27033,7 @@ var require_transport = __commonJS({
           return false;
         }
       }
-      return isAbsolute(path) && !existsSync2(path);
+      return isAbsolute(path) && !existsSync3(path);
     }
     function stripQuotes(value2) {
       const first = value2[0];
@@ -27115,7 +27115,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join4(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -27136,7 +27136,7 @@ var require_transport = __commonJS({
         const pipelinesHaveLevel = options.pipelines.some((p2) => p2.some((t) => t.level != null));
         usesMultistream = options.targets.length + options.pipelines.length > 1 || targetsHaveLevel || pipelinesHaveLevel;
       } else if (pipeline2) {
-        target = bundlerOverrides["pino-worker"] || join4(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.pipelines = [pipeline2.map((dest) => {
           return {
             ...dest,
@@ -27163,7 +27163,7 @@ var require_transport = __commonJS({
           return origin;
         }
         if (origin === "pino/file") {
-          return join4(__dirname, "..", "file.js");
+          return join5(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
@@ -28143,7 +28143,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join4 = ",";
+            let join5 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value2)) {
               if (value2.length === 0) {
@@ -28157,7 +28157,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join4 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value2.length, maximumBreadth);
@@ -28165,13 +28165,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value2, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join4;
+                res += join5;
               }
               const tmp = stringifyFnReplacer(String(i), value2, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value2.length - 1 > maximumBreadth) {
                 const removedKeys = value2.length - maximumBreadth - 1;
-                res += `${join4}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -28192,7 +28192,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join4 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -28206,13 +28206,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key3, value2, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key3)}:${whitespace}${tmp}`;
-                separator = join4;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join4;
+              separator = join5;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -28253,7 +28253,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join4 = ",";
+            let join5 = ",";
             if (Array.isArray(value2)) {
               if (value2.length === 0) {
                 return "[]";
@@ -28266,7 +28266,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join4 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value2.length, maximumBreadth);
@@ -28274,13 +28274,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value2[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join4;
+                res += join5;
               }
               const tmp = stringifyArrayReplacer(String(i), value2[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value2.length - 1 > maximumBreadth) {
                 const removedKeys = value2.length - maximumBreadth - 1;
-                res += `${join4}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -28293,7 +28293,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join4 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -28302,7 +28302,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key3, value2[key3], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key3)}:${whitespace}${tmp}`;
-                separator = join4;
+                separator = join5;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -28360,20 +28360,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join5 = `,
+              const join6 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value2.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value2[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join5;
+                res2 += join6;
               }
               const tmp = stringifyIndent(String(i), value2[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value2.length - 1 > maximumBreadth) {
                 const removedKeys = value2.length - maximumBreadth - 1;
-                res2 += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -28389,16 +28389,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join4 = `,
+            const join5 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value2)) {
-              res += stringifyTypedArray(value2, join4, maximumBreadth);
+              res += stringifyTypedArray(value2, join5, maximumBreadth);
               keys = keys.slice(value2.length);
               maximumPropertiesToStringify -= value2.length;
-              separator = join4;
+              separator = join5;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -28409,13 +28409,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key3, value2[key3], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key3)}: ${tmp}`;
-                separator = join4;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join4;
+              separator = join5;
             }
             if (separator !== "") {
               res = `
@@ -57266,8 +57266,8 @@ var bcryptjs_default = {
 
 // src/index.ts
 var import_fastify = __toESM(require_fastify(), 1);
-import { existsSync, readFileSync } from "node:fs";
-import { dirname as dirname3, join as join3 } from "node:path";
+import { existsSync as existsSync2, readFileSync } from "node:fs";
+import { dirname as dirname3, join as join4 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // src/auth.ts
@@ -57720,10 +57720,10 @@ function part(before, x, o, after2 = "") {
     o.dynamic = true;
   return isFragment(x) && x.strings === joinStrings ? joined(x.args[0], o, before, after2) : x instanceof Join ? joined(x, o, "", "") : x instanceof Builder ? helper(before, x, o) : isFragment(x) ? fragment(x, o) : x instanceof Identifier ? x.value : Array.isArray(x) && isFragment(x[0]) ? x.reduce((acc, x2) => acc + " " + fragment(x2, o), "") : value(x, o);
 }
-function joined(join4, o, before, after2) {
+function joined(join5, o, before, after2) {
   let text3 = "";
-  join4.items.forEach((item, i) => {
-    i > 0 && (text3 = spaced(text3, fragment(join4.separator, o)));
+  join5.items.forEach((item, i) => {
+    i > 0 && (text3 = spaced(text3, fragment(join5.separator, o)));
     text3 = spaced(text3, part("", item, o));
   });
   before && text3 && !/\s$/.test(before) && !/^\s/.test(text3) && (text3 = " " + text3);
@@ -58880,14 +58880,14 @@ function fits(want, { readOnly, standby }) {
 function attempt(options, host, port, signal) {
   const { setTimeout: setTimeout2, clearTimeout: clearTimeout2 } = options.timers, fail2 = (code) => Errors.connection(code, options, host, port);
   return new Promise((resolve, reject) => {
-    const timer2 = options.connect_timeout && setTimeout2(() => done2(true, fail2("CONNECT_TIMEOUT")), options.connect_timeout * 1e3);
+    const timer3 = options.connect_timeout && setTimeout2(() => done2(true, fail2("CONNECT_TIMEOUT")), options.connect_timeout * 1e3);
     let socket = null, raw = null, settled = false;
     session().then((x) => done2(false, null, x), (e) => done2(true, e));
     function done2(failed, error63, ready) {
       if (settled)
         return;
       settled = true;
-      timer2 && clearTimeout2(timer2);
+      timer3 && clearTimeout2(timer3);
       socket && signal.sockets.delete(socket);
       signal.aborted && !failed && (failed = true, error63 = fail2("CONNECTION_DESTROYED"));
       if (failed) {
@@ -60460,9 +60460,9 @@ function Pool(options, types2) {
   function hold(c2) {
     options.unref_sockets && c2.ref();
   }
-  function unref(timer2) {
-    options.unref_sockets && timer2 && typeof timer2.unref === "function" && timer2.unref();
-    return timer2;
+  function unref(timer3) {
+    options.unref_sockets && timer3 && typeof timer3.unref === "function" && timer3.unref();
+    return timer3;
   }
   function idled(c2) {
     c2.idleTimer = null;
@@ -60842,7 +60842,7 @@ function Subscribe(postgres2, options) {
   }
   function Stream3(stream) {
     const relations = {};
-    let acked = 0n, received = 0n, transaction2 = null, queue = null, failed = false, stopped = false, timer2 = timers.setTimeout(tick, statusInterval), soon = null;
+    let acked = 0n, received = 0n, transaction2 = null, queue = null, failed = false, stopped = false, timer3 = timers.setTimeout(tick2, statusInterval), soon = null;
     stream.on("data", data);
     stream.on("error", (error63) => failed || report(error63));
     stream.on("close", () => {
@@ -60937,12 +60937,12 @@ function Subscribe(postgres2, options) {
     function idle() {
       return !transaction2 && !queue;
     }
-    function tick() {
-      timer2 = null;
+    function tick2() {
+      timer3 = null;
       if (stopped)
         return;
       status();
-      timer2 = timers.setTimeout(tick, statusInterval);
+      timer3 = timers.setTimeout(tick2, statusInterval);
     }
     function status() {
       if (stopped || stream.destroyed || !stream.writable)
@@ -60968,9 +60968,9 @@ function Subscribe(postgres2, options) {
       if (stopped)
         return;
       stopped = true;
-      timer2 && timers.clearTimeout(timer2);
+      timer3 && timers.clearTimeout(timer3);
       soon && timers.clearImmediate(soon);
-      timer2 = soon = null;
+      timer3 = soon = null;
     }
   }
   function report(error63, subscriber) {
@@ -61716,6 +61716,601 @@ async function refundCredits(tenantId, amount) {
 // src/index.ts
 import { join as pathJoin } from "node:path";
 
+// src/xray.ts
+import { spawn } from "node:child_process";
+import { mkdir, writeFile } from "node:fs/promises";
+import net2 from "node:net";
+import { dirname as dirname2 } from "node:path";
+import tls2 from "node:tls";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join as join2 } from "node:path";
+import { unlink } from "node:fs/promises";
+var XRAY_BIN = process.env.NEXUS_XRAY_BIN ?? "xray";
+var XRAY_CONFIG = process.env.NEXUS_XRAY_CONFIG ?? "/data/xray/config.json";
+var XRAY_HTTP_PORT = Number(process.env.NEXUS_XRAY_HTTP_PORT ?? 10809);
+var XRAY_SOCKS_PORT = Number(process.env.NEXUS_XRAY_SOCKS_PORT ?? 10808);
+var XRAY_ADVERTISE = process.env.NEXUS_PROXY_ADVERTISE ?? `127.0.0.1:${XRAY_HTTP_PORT}`;
+function b64decode(input2) {
+  const s = input2.replace(/-/g, "+").replace(/_/g, "/");
+  return Buffer.from(s + "=".repeat((4 - s.length % 4) % 4), "base64").toString("utf8");
+}
+function list(value2) {
+  if (!value2) return void 0;
+  return value2.split(",").map((v) => v.trim()).filter(Boolean);
+}
+function buildStream(o) {
+  let network = (o.network || "tcp").toLowerCase();
+  if (network === "splithttp") network = "xhttp";
+  if (network === "raw") network = "tcp";
+  const stream = { network };
+  if (network === "ws") {
+    stream.wsSettings = { path: o.path || "/", host: o.host || void 0 };
+  } else if (network === "grpc") {
+    stream.grpcSettings = { serviceName: o.serviceName || o.path || "", multiMode: o.mode === "multi" };
+  } else if (network === "httpupgrade") {
+    stream.httpupgradeSettings = { path: o.path || "/", host: o.host || void 0 };
+  } else if (network === "xhttp") {
+    const settings = { path: o.path || "/", host: o.host || void 0, mode: o.mode || "auto" };
+    if (o.extra) {
+      try {
+        settings.extra = JSON.parse(o.extra);
+      } catch {
+      }
+    }
+    stream.xhttpSettings = settings;
+  } else if (network === "tcp" && o.headerType === "http") {
+    stream.tcpSettings = {
+      header: {
+        type: "http",
+        request: { path: list(o.path) ?? ["/"], headers: o.host ? { Host: list(o.host) } : {} }
+      }
+    };
+  }
+  const security = (o.security || "none").toLowerCase();
+  if (security === "tls") {
+    stream.security = "tls";
+    stream.tlsSettings = {
+      serverName: o.sni || o.host || void 0,
+      fingerprint: o.fp || "chrome",
+      alpn: list(o.alpn),
+      allowInsecure: o.allowInsecure ?? false
+    };
+  } else if (security === "reality") {
+    stream.security = "reality";
+    stream.realitySettings = {
+      serverName: o.sni || "",
+      fingerprint: o.fp || "chrome",
+      publicKey: o.pbk || "",
+      shortId: o.sid || "",
+      spiderX: o.spx || ""
+    };
+  } else {
+    stream.security = "none";
+  }
+  return stream;
+}
+function streamFromQuery(q) {
+  return buildStream({
+    network: q.get("type") ?? void 0,
+    security: q.get("security") ?? void 0,
+    sni: q.get("sni") ?? q.get("peer") ?? void 0,
+    fp: q.get("fp") ?? void 0,
+    alpn: q.get("alpn") ?? void 0,
+    pbk: q.get("pbk") ?? void 0,
+    sid: q.get("sid") ?? void 0,
+    spx: q.get("spx") ?? void 0,
+    host: q.get("host") ?? void 0,
+    path: q.get("path") ?? void 0,
+    serviceName: q.get("serviceName") ?? void 0,
+    mode: q.get("mode") ?? void 0,
+    headerType: q.get("headerType") ?? void 0,
+    allowInsecure: q.get("allowInsecure") === "1" || q.get("insecure") === "1",
+    extra: q.get("extra") ?? void 0
+  });
+}
+function hostOf(url2) {
+  return url2.hostname.replace(/^\[|\]$/g, "");
+}
+function parseLink(link) {
+  const raw = link.trim();
+  const scheme = raw.split("://")[0].toLowerCase();
+  if (scheme === "vmess") {
+    const json3 = JSON.parse(b64decode(raw.slice("vmess://".length).split("#")[0]));
+    const stream = buildStream({
+      network: json3.net,
+      security: json3.tls === "tls" || json3.tls === "reality" ? json3.tls : "none",
+      sni: json3.sni,
+      fp: json3.fp,
+      alpn: json3.alpn,
+      pbk: json3.pbk,
+      sid: json3.sid,
+      host: json3.host,
+      path: json3.path,
+      serviceName: json3.path,
+      mode: json3.type === "multi" ? "multi" : json3.mode,
+      headerType: json3.type
+    });
+    return {
+      protocol: "vmess",
+      name: json3.ps || `${json3.add}:${json3.port}`,
+      outbound: {
+        protocol: "vmess",
+        settings: {
+          vnext: [
+            {
+              address: json3.add,
+              port: Number(json3.port),
+              users: [{ id: json3.id, alterId: Number(json3.aid ?? 0), security: json3.scy || "auto" }]
+            }
+          ]
+        },
+        streamSettings: stream
+      }
+    };
+  }
+  if (scheme === "vless" || scheme === "trojan") {
+    const url2 = new URL(raw);
+    const q = url2.searchParams;
+    const name = decodeURIComponent(url2.hash.replace(/^#/, "")) || `${hostOf(url2)}:${url2.port}`;
+    const stream = streamFromQuery(q);
+    if (scheme === "trojan" && !q.get("security")) {
+      stream.security = "tls";
+      stream.tlsSettings = { serverName: q.get("sni") || hostOf(url2), fingerprint: q.get("fp") || "chrome" };
+    }
+    if (scheme === "vless") {
+      return {
+        protocol: "vless",
+        name,
+        outbound: {
+          protocol: "vless",
+          settings: {
+            vnext: [
+              {
+                address: hostOf(url2),
+                port: Number(url2.port || 443),
+                users: [
+                  {
+                    id: decodeURIComponent(url2.username),
+                    encryption: q.get("encryption") || "none",
+                    flow: q.get("flow") || void 0
+                  }
+                ]
+              }
+            ]
+          },
+          streamSettings: stream
+        }
+      };
+    }
+    return {
+      protocol: "trojan",
+      name,
+      outbound: {
+        protocol: "trojan",
+        settings: {
+          servers: [{ address: hostOf(url2), port: Number(url2.port || 443), password: decodeURIComponent(url2.username) }]
+        },
+        streamSettings: stream
+      }
+    };
+  }
+  if (scheme === "ss") {
+    let body = raw.slice("ss://".length);
+    let name = "";
+    const hashAt = body.indexOf("#");
+    if (hashAt >= 0) {
+      name = decodeURIComponent(body.slice(hashAt + 1));
+      body = body.slice(0, hashAt);
+    }
+    body = body.split("?")[0].replace(/\/$/, "");
+    let method;
+    let password2;
+    let host;
+    let port;
+    if (!body.includes("@")) {
+      body = b64decode(body);
+    }
+    const at = body.lastIndexOf("@");
+    const userinfo = body.slice(0, at);
+    const server = body.slice(at + 1);
+    const decoded = userinfo.includes(":") ? decodeURIComponent(userinfo) : b64decode(userinfo);
+    const colon = decoded.indexOf(":");
+    method = decoded.slice(0, colon);
+    password2 = decoded.slice(colon + 1);
+    const portAt = server.lastIndexOf(":");
+    host = server.slice(0, portAt).replace(/^\[|\]$/g, "");
+    port = Number(server.slice(portAt + 1));
+    return {
+      protocol: "shadowsocks",
+      name: name || `${host}:${port}`,
+      outbound: {
+        protocol: "shadowsocks",
+        settings: { servers: [{ address: host, port, method, password: password2 }] }
+      }
+    };
+  }
+  throw new Error(`Unsupported link scheme "${scheme}". Use vless://, vmess://, ss:// or trojan://`);
+}
+function buildXrayConfig(outbound) {
+  const outbounds = [];
+  if (outbound) outbounds.push({ ...outbound, tag: "proxy" });
+  outbounds.push({ protocol: "freedom", tag: "direct" });
+  outbounds.push({ protocol: "blackhole", tag: "block" });
+  return {
+    log: { loglevel: "warning" },
+    inbounds: [
+      { tag: "http-in", listen: "0.0.0.0", port: XRAY_HTTP_PORT, protocol: "http", settings: {} },
+      { tag: "socks-in", listen: "0.0.0.0", port: XRAY_SOCKS_PORT, protocol: "socks", settings: { udp: true } }
+    ],
+    outbounds,
+    routing: {
+      domainStrategy: "IPIfNonMatch",
+      rules: [{ type: "field", ip: ["geoip:private"], outboundTag: "direct" }]
+    }
+  };
+}
+var child = null;
+var lastError = "";
+function xrayInstalled() {
+  if (XRAY_BIN.includes("/")) return existsSync(XRAY_BIN);
+  const dirs = (process.env.PATH ?? "").split(":");
+  return dirs.some(function has(d2) {
+    return d2 && existsSync(join2(d2, XRAY_BIN));
+  });
+}
+function xrayStatus() {
+  return { running: child !== null && child.exitCode === null, error: lastError, installed: xrayInstalled() };
+}
+async function applyXray(outbound) {
+  await mkdir(dirname2(XRAY_CONFIG), { recursive: true });
+  const cfg = buildXrayConfig(outbound);
+  cfg.routing.rules = [
+    { type: "field", ip: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "::1/128", "fc00::/7"], outboundTag: "direct" }
+  ];
+  await writeFile(XRAY_CONFIG, JSON.stringify(cfg, null, 2));
+  await stopXray();
+  if (!outbound) return;
+  lastError = "";
+  const proc = spawn(XRAY_BIN, ["run", "-c", XRAY_CONFIG], { stdio: ["ignore", "pipe", "pipe"] });
+  child = proc;
+  proc.on("error", function onError(err) {
+    lastError = err.message;
+    child = null;
+  });
+  proc.stderr?.on("data", function onErr(buf) {
+    lastError = buf.toString().slice(-500);
+  });
+  proc.on("exit", function onExit(code) {
+    if (child === proc) {
+      child = null;
+      if (code) lastError = `xray exited with code ${code}. ${lastError}`;
+    }
+  });
+  await new Promise((r) => setTimeout(r, 700));
+}
+async function stopXray() {
+  const proc = child;
+  child = null;
+  if (!proc || proc.exitCode !== null) return;
+  await new Promise(function wait(resolve) {
+    proc.once("exit", function done2() {
+      resolve();
+    });
+    proc.kill("SIGTERM");
+    setTimeout(resolve, 2e3);
+  });
+}
+function testThroughProxy(target = "web.whatsapp.com", timeoutMs = 1e4, port = XRAY_HTTP_PORT) {
+  const started = Date.now();
+  return new Promise(function run2(resolve, reject) {
+    const socket = net2.connect(port, "127.0.0.1");
+    const timer3 = setTimeout(function timeout() {
+      socket.destroy();
+      reject(new Error("timeout"));
+    }, timeoutMs);
+    socket.once("error", function onError(err) {
+      clearTimeout(timer3);
+      reject(err);
+    });
+    socket.once("connect", function onConnect() {
+      socket.write(`CONNECT ${target}:443 HTTP/1.1\r
+Host: ${target}:443\r
+\r
+`);
+    });
+    socket.once("data", function onData(buf) {
+      const line = buf.toString().split("\r\n")[0];
+      if (!/ 200 /.test(line)) {
+        clearTimeout(timer3);
+        socket.destroy();
+        reject(new Error(`proxy answered: ${line}`));
+        return;
+      }
+      const secure = tls2.connect({ socket, servername: target }, function onSecure() {
+        clearTimeout(timer3);
+        secure.destroy();
+        resolve(Date.now() - started);
+      });
+      secure.once("error", function onTlsError(err) {
+        clearTimeout(timer3);
+        reject(err);
+      });
+    });
+  });
+}
+function freePort() {
+  return new Promise(function find(resolve, reject) {
+    const srv = net2.createServer();
+    srv.listen(0, "127.0.0.1", function listening() {
+      const port = srv.address().port;
+      srv.close(function closed() {
+        resolve(port);
+      });
+    });
+    srv.on("error", reject);
+  });
+}
+async function testOutbound(outbound, timeoutMs = 9e3) {
+  if (!xrayInstalled()) throw new Error("xray_not_installed");
+  const port = await freePort();
+  const cfg = {
+    log: { loglevel: "none" },
+    inbounds: [{ tag: "http-in", listen: "127.0.0.1", port, protocol: "http", settings: {} }],
+    outbounds: [{ ...outbound, tag: "proxy" }, { protocol: "freedom", tag: "direct" }]
+  };
+  const file2 = join2(tmpdir(), `xray-test-${port}.json`);
+  await writeFile(file2, JSON.stringify(cfg));
+  const proc = spawn(XRAY_BIN, ["run", "-c", file2], { stdio: ["ignore", "ignore", "pipe"] });
+  let err = "";
+  proc.stderr?.on("data", function onErr(b) {
+    err += b.toString().slice(-300);
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 700));
+    if (proc.exitCode !== null) throw new Error(`xray exited: ${err.trim() || "bad config"}`);
+    return await testThroughProxy("web.whatsapp.com", timeoutMs, port);
+  } finally {
+    proc.kill("SIGKILL");
+    await unlink(file2).catch(function ignore2() {
+    });
+  }
+}
+
+// src/waha.ts
+var WahaError = class extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+};
+async function call2(method, path, body, raw = false) {
+  const headers = { accept: raw ? "*/*" : "application/json" };
+  if (config.wahaApiKey) headers["x-api-key"] = config.wahaApiKey;
+  if (body !== void 0) headers["content-type"] = "application/json";
+  const res = await fetch(config.wahaUrl.replace(/\/$/, "") + path, {
+    method,
+    headers,
+    body: body === void 0 ? void 0 : JSON.stringify(body),
+    signal: AbortSignal.timeout(6e4)
+  });
+  if (!res.ok) {
+    const text4 = await res.text().catch(function empty2() {
+      return "";
+    });
+    throw new WahaError(res.status, `WAHA ${method} ${path} -> ${res.status}: ${text4.slice(0, 500)}`);
+  }
+  if (raw) return await res.arrayBuffer();
+  const text3 = await res.text();
+  return text3 ? JSON.parse(text3) : null;
+}
+function sessionConfig(proxy) {
+  const cfg = {
+    webhooks: [
+      {
+        url: `${config.internalUrl.replace(/\/$/, "")}/hooks/waha?token=${encodeURIComponent(config.webhookSecret)}`,
+        events: ["message", "message.ack", "session.status"],
+        retries: { policy: "exponential", delaySeconds: 2, attempts: 5 }
+      }
+    ]
+  };
+  if (proxy) cfg.proxy = { server: proxy.server };
+  return cfg;
+}
+var waha = {
+  createSession(name, proxy) {
+    const body = { name, start: true, config: sessionConfig(proxy) };
+    if (config.wahaEngine) body.engine = config.wahaEngine;
+    return call2("POST", "/api/sessions", body);
+  },
+  updateSession(name, proxy) {
+    return call2("PUT", `/api/sessions/${encodeURIComponent(name)}`, { name, config: sessionConfig(proxy) });
+  },
+  getSession(name) {
+    return call2("GET", `/api/sessions/${encodeURIComponent(name)}`);
+  },
+  listGroups(name) {
+    return call2("GET", `/api/${encodeURIComponent(name)}/groups`);
+  },
+  createGroup(name, subject, participants) {
+    return call2("POST", `/api/${encodeURIComponent(name)}/groups`, {
+      name: subject,
+      participants: participants.map(function toP(id) {
+        return { id };
+      })
+    });
+  },
+  addParticipants(name, groupId, participants) {
+    return call2("POST", `/api/${encodeURIComponent(name)}/groups/${encodeURIComponent(groupId)}/participants/add`, {
+      participants: participants.map(function toP(id) {
+        return { id };
+      })
+    });
+  },
+  getParticipants(name, groupId) {
+    return call2("GET", `/api/${encodeURIComponent(name)}/groups/${encodeURIComponent(groupId)}/participants`);
+  },
+  createChannel(name, title, description) {
+    return call2("POST", `/api/${encodeURIComponent(name)}/channels`, { name: title, description });
+  },
+  deleteSession(name) {
+    return call2("DELETE", `/api/sessions/${encodeURIComponent(name)}`);
+  },
+  restartSession(name) {
+    return call2("POST", `/api/sessions/${encodeURIComponent(name)}/restart`);
+  },
+  logoutSession(name) {
+    return call2("POST", `/api/sessions/${encodeURIComponent(name)}/logout`);
+  },
+  qr(name) {
+    return call2("GET", `/api/${encodeURIComponent(name)}/auth/qr?format=raw`);
+  },
+  requestCode(name, phoneNumber) {
+    return call2("POST", `/api/${encodeURIComponent(name)}/auth/request-code`, { phoneNumber });
+  },
+  checkExists(name, phone) {
+    return call2("GET", `/api/contacts/check-exists?session=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}`);
+  },
+  lidToPhone(name, lid) {
+    return call2("GET", `/api/${encodeURIComponent(name)}/lids/${encodeURIComponent(lid)}`);
+  },
+  startTyping(name, chatId) {
+    return call2("POST", "/api/startTyping", { session: name, chatId });
+  },
+  sendSeen(name, chatId) {
+    return call2("POST", "/api/sendSeen", { session: name, chatId });
+  },
+  async send(name, chatId, content) {
+    const base = { session: name, chatId };
+    if (content.type === "text" || !content.mediaUrl) {
+      return call2("POST", "/api/sendText", { ...base, text: content.text ?? "" });
+    }
+    const file2 = { url: content.mediaUrl };
+    if (content.mimetype) file2.mimetype = content.mimetype;
+    if (content.filename) file2.filename = content.filename;
+    if (content.type === "image") return call2("POST", "/api/sendImage", { ...base, file: file2, caption: content.text });
+    if (content.type === "video") return call2("POST", "/api/sendVideo", { ...base, file: file2, caption: content.text, convert: true });
+    if (content.type === "voice") return call2("POST", "/api/sendVoice", { ...base, file: file2, convert: true });
+    return call2("POST", "/api/sendFile", { ...base, file: file2, caption: content.text });
+  }
+};
+function messageIdOf(res) {
+  const id = res?.id?._serialized ?? res?.id ?? res?.key?.id ?? res?.message?.id ?? null;
+  if (id && typeof id === "object") return id.id ?? id._serialized ?? null;
+  return id ? String(id) : null;
+}
+function shortId(id) {
+  if (!id) return null;
+  const parts2 = String(id).split("_");
+  return parts2[parts2.length - 1] || null;
+}
+
+// src/settings.ts
+async function getSetting(key2, fallback) {
+  const rows = await sql`SELECT value FROM settings WHERE key = ${key2}`;
+  return rows[0]?.value ?? fallback;
+}
+async function setSetting(key2, value2) {
+  await sql`
+    INSERT INTO settings (key, value) VALUES (${key2}, ${sql.json(value2)})
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`;
+}
+async function activeProxy() {
+  const rows = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
+  return rows.length ? { server: XRAY_ADVERTISE } : null;
+}
+async function startActiveProxy() {
+  const rows = await sql`SELECT outbound FROM proxies WHERE active LIMIT 1`;
+  await applyXray(rows[0]?.outbound ?? null);
+}
+async function syncSessionsProxy() {
+  const proxy = await activeProxy();
+  const sessions = await sql`SELECT name FROM wa_sessions`;
+  const failed = [];
+  for (const s of sessions) {
+    try {
+      await waha.updateSession(s.name, proxy);
+      await waha.restartSession(s.name);
+    } catch {
+      failed.push(s.name);
+    }
+  }
+  return { updated: sessions.length - failed.length, failed };
+}
+
+// src/failover.ts
+async function activateBest() {
+  const rows = await sql`SELECT id, name, outbound FROM proxies ORDER BY id`;
+  let best = null;
+  for (const r of rows) {
+    try {
+      const ms = await testOutbound(r.outbound);
+      await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${r.id}`;
+      if (!best || ms < best.ms) best = { id: r.id, name: r.name, ms };
+    } catch {
+      await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now() WHERE id = ${r.id}`;
+    }
+  }
+  if (!best) return null;
+  await sql.begin(async function swap(tx) {
+    await tx`UPDATE proxies SET active = FALSE WHERE active`;
+    await tx`UPDATE proxies SET active = TRUE WHERE id = ${best.id}`;
+  });
+  await startActiveProxy();
+  await syncSessionsProxy();
+  return best;
+}
+var failures = 0;
+var timer = null;
+var busy = false;
+function failoverState() {
+  return { failures, checking: busy };
+}
+async function tick() {
+  if (busy) return;
+  busy = true;
+  try {
+    const enabled = await getSetting("proxy_failover", true);
+    const active2 = await sql`SELECT id, name FROM proxies WHERE active LIMIT 1`;
+    if (!enabled || !active2.length || !xrayInstalled()) {
+      failures = 0;
+      return;
+    }
+    if (!xrayStatus().running) await startActiveProxy();
+    try {
+      const ms = await testThroughProxy("web.whatsapp.com", 8e3);
+      failures = 0;
+      await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${active2[0].id}`;
+      return;
+    } catch (err) {
+      failures += 1;
+      await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_at = now() WHERE id = ${active2[0].id}`;
+      console.warn(`[failover] active proxy "${active2[0].name}" failed (${failures}): ${err?.message ?? err}`);
+    }
+    if (failures < 2) return;
+    console.warn("[failover] switching to the fastest working config...");
+    const best = await activateBest();
+    failures = 0;
+    if (best) console.warn(`[failover] now using "${best.name}" (${best.ms} ms)`);
+    else console.warn("[failover] no working config found; keeping current");
+  } catch (err) {
+    console.error("[failover] check failed", err);
+  } finally {
+    busy = false;
+  }
+}
+function startProxyWatchdog(intervalSeconds) {
+  if (timer) clearInterval(timer);
+  timer = setInterval(function run2() {
+    void tick();
+  }, Math.max(20, intervalSeconds) * 1e3);
+  timer.unref();
+}
+function stopProxyWatchdog() {
+  if (timer) clearInterval(timer);
+  timer = null;
+}
+
 // src/guard.ts
 var requests = /* @__PURE__ */ new Map();
 var violations = /* @__PURE__ */ new Map();
@@ -61744,10 +62339,10 @@ function allowed(ip) {
   });
 }
 function registerGuard(app, https) {
-  const timer2 = setInterval(sweep, 6e4);
-  timer2.unref();
+  const timer3 = setInterval(sweep, 6e4);
+  timer3.unref();
   app.addHook("onClose", async function stop() {
-    clearInterval(timer2);
+    clearInterval(timer3);
   });
   app.addHook("onRequest", async function guard(request, reply) {
     const ip = request.ip;
@@ -81603,134 +82198,6 @@ function normalizeText(input2) {
   return latinDigits(input2).replace(/[‌‏‎]/g, "").replace(/ي/g, "\u06CC").replace(/ك/g, "\u06A9").trim().toLowerCase();
 }
 
-// src/waha.ts
-var WahaError = class extends Error {
-  constructor(status, message) {
-    super(message);
-    this.status = status;
-  }
-};
-async function call2(method, path, body, raw = false) {
-  const headers = { accept: raw ? "*/*" : "application/json" };
-  if (config.wahaApiKey) headers["x-api-key"] = config.wahaApiKey;
-  if (body !== void 0) headers["content-type"] = "application/json";
-  const res = await fetch(config.wahaUrl.replace(/\/$/, "") + path, {
-    method,
-    headers,
-    body: body === void 0 ? void 0 : JSON.stringify(body),
-    signal: AbortSignal.timeout(6e4)
-  });
-  if (!res.ok) {
-    const text4 = await res.text().catch(function empty2() {
-      return "";
-    });
-    throw new WahaError(res.status, `WAHA ${method} ${path} -> ${res.status}: ${text4.slice(0, 500)}`);
-  }
-  if (raw) return await res.arrayBuffer();
-  const text3 = await res.text();
-  return text3 ? JSON.parse(text3) : null;
-}
-function sessionConfig(proxy) {
-  const cfg = {
-    webhooks: [
-      {
-        url: `${config.internalUrl.replace(/\/$/, "")}/hooks/waha?token=${encodeURIComponent(config.webhookSecret)}`,
-        events: ["message", "message.ack", "session.status"],
-        retries: { policy: "exponential", delaySeconds: 2, attempts: 5 }
-      }
-    ]
-  };
-  if (proxy) cfg.proxy = { server: proxy.server };
-  return cfg;
-}
-var waha = {
-  createSession(name, proxy) {
-    const body = { name, start: true, config: sessionConfig(proxy) };
-    if (config.wahaEngine) body.engine = config.wahaEngine;
-    return call2("POST", "/api/sessions", body);
-  },
-  updateSession(name, proxy) {
-    return call2("PUT", `/api/sessions/${encodeURIComponent(name)}`, { name, config: sessionConfig(proxy) });
-  },
-  getSession(name) {
-    return call2("GET", `/api/sessions/${encodeURIComponent(name)}`);
-  },
-  listGroups(name) {
-    return call2("GET", `/api/${encodeURIComponent(name)}/groups`);
-  },
-  createGroup(name, subject, participants) {
-    return call2("POST", `/api/${encodeURIComponent(name)}/groups`, {
-      name: subject,
-      participants: participants.map(function toP(id) {
-        return { id };
-      })
-    });
-  },
-  addParticipants(name, groupId, participants) {
-    return call2("POST", `/api/${encodeURIComponent(name)}/groups/${encodeURIComponent(groupId)}/participants/add`, {
-      participants: participants.map(function toP(id) {
-        return { id };
-      })
-    });
-  },
-  getParticipants(name, groupId) {
-    return call2("GET", `/api/${encodeURIComponent(name)}/groups/${encodeURIComponent(groupId)}/participants`);
-  },
-  createChannel(name, title, description) {
-    return call2("POST", `/api/${encodeURIComponent(name)}/channels`, { name: title, description });
-  },
-  deleteSession(name) {
-    return call2("DELETE", `/api/sessions/${encodeURIComponent(name)}`);
-  },
-  restartSession(name) {
-    return call2("POST", `/api/sessions/${encodeURIComponent(name)}/restart`);
-  },
-  logoutSession(name) {
-    return call2("POST", `/api/sessions/${encodeURIComponent(name)}/logout`);
-  },
-  qr(name) {
-    return call2("GET", `/api/${encodeURIComponent(name)}/auth/qr?format=raw`);
-  },
-  requestCode(name, phoneNumber) {
-    return call2("POST", `/api/${encodeURIComponent(name)}/auth/request-code`, { phoneNumber });
-  },
-  checkExists(name, phone) {
-    return call2("GET", `/api/contacts/check-exists?session=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}`);
-  },
-  lidToPhone(name, lid) {
-    return call2("GET", `/api/${encodeURIComponent(name)}/lids/${encodeURIComponent(lid)}`);
-  },
-  startTyping(name, chatId) {
-    return call2("POST", "/api/startTyping", { session: name, chatId });
-  },
-  sendSeen(name, chatId) {
-    return call2("POST", "/api/sendSeen", { session: name, chatId });
-  },
-  async send(name, chatId, content) {
-    const base = { session: name, chatId };
-    if (content.type === "text" || !content.mediaUrl) {
-      return call2("POST", "/api/sendText", { ...base, text: content.text ?? "" });
-    }
-    const file2 = { url: content.mediaUrl };
-    if (content.mimetype) file2.mimetype = content.mimetype;
-    if (content.filename) file2.filename = content.filename;
-    if (content.type === "image") return call2("POST", "/api/sendImage", { ...base, file: file2, caption: content.text });
-    if (content.type === "video") return call2("POST", "/api/sendVideo", { ...base, file: file2, caption: content.text, convert: true });
-    if (content.type === "voice") return call2("POST", "/api/sendVoice", { ...base, file: file2, convert: true });
-    return call2("POST", "/api/sendFile", { ...base, file: file2, caption: content.text });
-  }
-};
-function messageIdOf(res) {
-  const id = res?.id?._serialized ?? res?.id ?? res?.key?.id ?? res?.message?.id ?? null;
-  if (id && typeof id === "object") return id.id ?? id._serialized ?? null;
-  return id ? String(id) : null;
-}
-function shortId(id) {
-  if (!id) return null;
-  const parts2 = String(id).split("_");
-  return parts2[parts2.length - 1] || null;
-}
-
 // src/providers/whatsapp.ts
 var whatsapp = {
   id: "whatsapp",
@@ -81776,20 +82243,20 @@ function renderContent(content, contact) {
 }
 
 // src/sender.ts
-var busy = /* @__PURE__ */ new Set();
-var timer = null;
+var busy2 = /* @__PURE__ */ new Set();
+var timer2 = null;
 function startScheduler(tickMs) {
   void sql`UPDATE messages SET status = 'queued' WHERE status = 'sending'`.catch(function ignore2() {
   });
-  timer = setInterval(function tick() {
+  timer2 = setInterval(function tick2() {
     void runTick().catch(function log(err) {
       console.error("scheduler tick failed", err);
     });
   }, tickMs);
 }
 function stopScheduler() {
-  if (timer) clearInterval(timer);
-  timer = null;
+  if (timer2) clearInterval(timer2);
+  timer2 = null;
 }
 async function runTick() {
   const sessions = await sql`
@@ -81801,12 +82268,12 @@ async function runTick() {
         WHERE m.session_id = s.id AND m.status = 'queued' AND (m.campaign_id IS NULL OR c.status = 'running')
       )`;
   for (const s of sessions) {
-    if (busy.has(s.id)) continue;
-    busy.add(s.id);
+    if (busy2.has(s.id)) continue;
+    busy2.add(s.id);
     void processSession(s).catch(function log(err) {
       console.error(`session ${s.name} send failed`, err);
     }).finally(function release() {
-      busy.delete(s.id);
+      busy2.delete(s.id);
     });
   }
 }
@@ -82058,343 +82525,6 @@ async function onMessage(session, payload) {
   }
 }
 
-// src/xray.ts
-import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
-import net2 from "node:net";
-import { dirname as dirname2 } from "node:path";
-import tls2 from "node:tls";
-var XRAY_BIN = process.env.NEXUS_XRAY_BIN ?? "xray";
-var XRAY_CONFIG = process.env.NEXUS_XRAY_CONFIG ?? "/data/xray/config.json";
-var XRAY_HTTP_PORT = Number(process.env.NEXUS_XRAY_HTTP_PORT ?? 10809);
-var XRAY_SOCKS_PORT = Number(process.env.NEXUS_XRAY_SOCKS_PORT ?? 10808);
-var XRAY_ADVERTISE = process.env.NEXUS_PROXY_ADVERTISE ?? `127.0.0.1:${XRAY_HTTP_PORT}`;
-function b64decode(input2) {
-  const s = input2.replace(/-/g, "+").replace(/_/g, "/");
-  return Buffer.from(s + "=".repeat((4 - s.length % 4) % 4), "base64").toString("utf8");
-}
-function list(value2) {
-  if (!value2) return void 0;
-  return value2.split(",").map((v) => v.trim()).filter(Boolean);
-}
-function buildStream(o) {
-  let network = (o.network || "tcp").toLowerCase();
-  if (network === "splithttp") network = "xhttp";
-  if (network === "raw") network = "tcp";
-  const stream = { network };
-  if (network === "ws") {
-    stream.wsSettings = { path: o.path || "/", host: o.host || void 0 };
-  } else if (network === "grpc") {
-    stream.grpcSettings = { serviceName: o.serviceName || o.path || "", multiMode: o.mode === "multi" };
-  } else if (network === "httpupgrade") {
-    stream.httpupgradeSettings = { path: o.path || "/", host: o.host || void 0 };
-  } else if (network === "xhttp") {
-    const settings = { path: o.path || "/", host: o.host || void 0, mode: o.mode || "auto" };
-    if (o.extra) {
-      try {
-        settings.extra = JSON.parse(o.extra);
-      } catch {
-      }
-    }
-    stream.xhttpSettings = settings;
-  } else if (network === "tcp" && o.headerType === "http") {
-    stream.tcpSettings = {
-      header: {
-        type: "http",
-        request: { path: list(o.path) ?? ["/"], headers: o.host ? { Host: list(o.host) } : {} }
-      }
-    };
-  }
-  const security = (o.security || "none").toLowerCase();
-  if (security === "tls") {
-    stream.security = "tls";
-    stream.tlsSettings = {
-      serverName: o.sni || o.host || void 0,
-      fingerprint: o.fp || "chrome",
-      alpn: list(o.alpn),
-      allowInsecure: o.allowInsecure ?? false
-    };
-  } else if (security === "reality") {
-    stream.security = "reality";
-    stream.realitySettings = {
-      serverName: o.sni || "",
-      fingerprint: o.fp || "chrome",
-      publicKey: o.pbk || "",
-      shortId: o.sid || "",
-      spiderX: o.spx || ""
-    };
-  } else {
-    stream.security = "none";
-  }
-  return stream;
-}
-function streamFromQuery(q) {
-  return buildStream({
-    network: q.get("type") ?? void 0,
-    security: q.get("security") ?? void 0,
-    sni: q.get("sni") ?? q.get("peer") ?? void 0,
-    fp: q.get("fp") ?? void 0,
-    alpn: q.get("alpn") ?? void 0,
-    pbk: q.get("pbk") ?? void 0,
-    sid: q.get("sid") ?? void 0,
-    spx: q.get("spx") ?? void 0,
-    host: q.get("host") ?? void 0,
-    path: q.get("path") ?? void 0,
-    serviceName: q.get("serviceName") ?? void 0,
-    mode: q.get("mode") ?? void 0,
-    headerType: q.get("headerType") ?? void 0,
-    allowInsecure: q.get("allowInsecure") === "1" || q.get("insecure") === "1",
-    extra: q.get("extra") ?? void 0
-  });
-}
-function hostOf(url2) {
-  return url2.hostname.replace(/^\[|\]$/g, "");
-}
-function parseLink(link) {
-  const raw = link.trim();
-  const scheme = raw.split("://")[0].toLowerCase();
-  if (scheme === "vmess") {
-    const json3 = JSON.parse(b64decode(raw.slice("vmess://".length).split("#")[0]));
-    const stream = buildStream({
-      network: json3.net,
-      security: json3.tls === "tls" || json3.tls === "reality" ? json3.tls : "none",
-      sni: json3.sni,
-      fp: json3.fp,
-      alpn: json3.alpn,
-      pbk: json3.pbk,
-      sid: json3.sid,
-      host: json3.host,
-      path: json3.path,
-      serviceName: json3.path,
-      mode: json3.type === "multi" ? "multi" : json3.mode,
-      headerType: json3.type
-    });
-    return {
-      protocol: "vmess",
-      name: json3.ps || `${json3.add}:${json3.port}`,
-      outbound: {
-        protocol: "vmess",
-        settings: {
-          vnext: [
-            {
-              address: json3.add,
-              port: Number(json3.port),
-              users: [{ id: json3.id, alterId: Number(json3.aid ?? 0), security: json3.scy || "auto" }]
-            }
-          ]
-        },
-        streamSettings: stream
-      }
-    };
-  }
-  if (scheme === "vless" || scheme === "trojan") {
-    const url2 = new URL(raw);
-    const q = url2.searchParams;
-    const name = decodeURIComponent(url2.hash.replace(/^#/, "")) || `${hostOf(url2)}:${url2.port}`;
-    const stream = streamFromQuery(q);
-    if (scheme === "trojan" && !q.get("security")) {
-      stream.security = "tls";
-      stream.tlsSettings = { serverName: q.get("sni") || hostOf(url2), fingerprint: q.get("fp") || "chrome" };
-    }
-    if (scheme === "vless") {
-      return {
-        protocol: "vless",
-        name,
-        outbound: {
-          protocol: "vless",
-          settings: {
-            vnext: [
-              {
-                address: hostOf(url2),
-                port: Number(url2.port || 443),
-                users: [
-                  {
-                    id: decodeURIComponent(url2.username),
-                    encryption: q.get("encryption") || "none",
-                    flow: q.get("flow") || void 0
-                  }
-                ]
-              }
-            ]
-          },
-          streamSettings: stream
-        }
-      };
-    }
-    return {
-      protocol: "trojan",
-      name,
-      outbound: {
-        protocol: "trojan",
-        settings: {
-          servers: [{ address: hostOf(url2), port: Number(url2.port || 443), password: decodeURIComponent(url2.username) }]
-        },
-        streamSettings: stream
-      }
-    };
-  }
-  if (scheme === "ss") {
-    let body = raw.slice("ss://".length);
-    let name = "";
-    const hashAt = body.indexOf("#");
-    if (hashAt >= 0) {
-      name = decodeURIComponent(body.slice(hashAt + 1));
-      body = body.slice(0, hashAt);
-    }
-    body = body.split("?")[0].replace(/\/$/, "");
-    let method;
-    let password2;
-    let host;
-    let port;
-    if (!body.includes("@")) {
-      body = b64decode(body);
-    }
-    const at = body.lastIndexOf("@");
-    const userinfo = body.slice(0, at);
-    const server = body.slice(at + 1);
-    const decoded = userinfo.includes(":") ? decodeURIComponent(userinfo) : b64decode(userinfo);
-    const colon = decoded.indexOf(":");
-    method = decoded.slice(0, colon);
-    password2 = decoded.slice(colon + 1);
-    const portAt = server.lastIndexOf(":");
-    host = server.slice(0, portAt).replace(/^\[|\]$/g, "");
-    port = Number(server.slice(portAt + 1));
-    return {
-      protocol: "shadowsocks",
-      name: name || `${host}:${port}`,
-      outbound: {
-        protocol: "shadowsocks",
-        settings: { servers: [{ address: host, port, method, password: password2 }] }
-      }
-    };
-  }
-  throw new Error(`Unsupported link scheme "${scheme}". Use vless://, vmess://, ss:// or trojan://`);
-}
-function buildXrayConfig(outbound) {
-  const outbounds = [];
-  if (outbound) outbounds.push({ ...outbound, tag: "proxy" });
-  outbounds.push({ protocol: "freedom", tag: "direct" });
-  outbounds.push({ protocol: "blackhole", tag: "block" });
-  return {
-    log: { loglevel: "warning" },
-    inbounds: [
-      { tag: "http-in", listen: "0.0.0.0", port: XRAY_HTTP_PORT, protocol: "http", settings: {} },
-      { tag: "socks-in", listen: "0.0.0.0", port: XRAY_SOCKS_PORT, protocol: "socks", settings: { udp: true } }
-    ],
-    outbounds,
-    routing: {
-      domainStrategy: "IPIfNonMatch",
-      rules: [{ type: "field", ip: ["geoip:private"], outboundTag: "direct" }]
-    }
-  };
-}
-var child = null;
-var lastError = "";
-function xrayStatus() {
-  return { running: child !== null && child.exitCode === null, error: lastError };
-}
-async function applyXray(outbound) {
-  await mkdir(dirname2(XRAY_CONFIG), { recursive: true });
-  const cfg = buildXrayConfig(outbound);
-  cfg.routing.rules = [
-    { type: "field", ip: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "::1/128", "fc00::/7"], outboundTag: "direct" }
-  ];
-  await writeFile(XRAY_CONFIG, JSON.stringify(cfg, null, 2));
-  await stopXray();
-  if (!outbound) return;
-  lastError = "";
-  const proc = spawn(XRAY_BIN, ["run", "-c", XRAY_CONFIG], { stdio: ["ignore", "pipe", "pipe"] });
-  child = proc;
-  proc.on("error", function onError(err) {
-    lastError = err.message;
-    child = null;
-  });
-  proc.stderr?.on("data", function onErr(buf) {
-    lastError = buf.toString().slice(-500);
-  });
-  proc.on("exit", function onExit(code) {
-    if (child === proc) {
-      child = null;
-      if (code) lastError = `xray exited with code ${code}. ${lastError}`;
-    }
-  });
-  await new Promise((r) => setTimeout(r, 700));
-}
-async function stopXray() {
-  const proc = child;
-  child = null;
-  if (!proc || proc.exitCode !== null) return;
-  await new Promise(function wait(resolve) {
-    proc.once("exit", function done2() {
-      resolve();
-    });
-    proc.kill("SIGTERM");
-    setTimeout(resolve, 2e3);
-  });
-}
-function testThroughProxy(target = "web.whatsapp.com", timeoutMs = 1e4) {
-  const started = Date.now();
-  return new Promise(function run2(resolve, reject) {
-    const socket = net2.connect(XRAY_HTTP_PORT, "127.0.0.1");
-    const timer2 = setTimeout(function timeout() {
-      socket.destroy();
-      reject(new Error("timeout"));
-    }, timeoutMs);
-    socket.once("error", function onError(err) {
-      clearTimeout(timer2);
-      reject(err);
-    });
-    socket.once("connect", function onConnect() {
-      socket.write(`CONNECT ${target}:443 HTTP/1.1\r
-Host: ${target}:443\r
-\r
-`);
-    });
-    socket.once("data", function onData(buf) {
-      const line = buf.toString().split("\r\n")[0];
-      if (!/ 200 /.test(line)) {
-        clearTimeout(timer2);
-        socket.destroy();
-        reject(new Error(`proxy answered: ${line}`));
-        return;
-      }
-      const secure = tls2.connect({ socket, servername: target }, function onSecure() {
-        clearTimeout(timer2);
-        secure.destroy();
-        resolve(Date.now() - started);
-      });
-      secure.once("error", function onTlsError(err) {
-        clearTimeout(timer2);
-        reject(err);
-      });
-    });
-  });
-}
-
-// src/settings.ts
-async function activeProxy() {
-  const rows = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
-  return rows.length ? { server: XRAY_ADVERTISE } : null;
-}
-async function startActiveProxy() {
-  const rows = await sql`SELECT outbound FROM proxies WHERE active LIMIT 1`;
-  await applyXray(rows[0]?.outbound ?? null);
-}
-async function syncSessionsProxy() {
-  const proxy = await activeProxy();
-  const sessions = await sql`SELECT name FROM wa_sessions`;
-  const failed = [];
-  for (const s of sessions) {
-    try {
-      await waha.updateSession(s.name, proxy);
-      await waha.restartSession(s.name);
-    } catch {
-      failed.push(s.name);
-    }
-  }
-  return { updated: sessions.length - failed.length, failed };
-}
-
 // src/routes/admin.ts
 var planSchema = external_exports.object({
   name: external_exports.string().min(1).max(100),
@@ -82411,6 +82541,38 @@ async function assignPlan(tenantId, planId) {
     UPDATE tenants SET plan_id = ${plan.id}, credits = credits + ${plan.message_quota},
       plan_expires_at = GREATEST(COALESCE(plan_expires_at, now()), now()) + ${plan.duration_days + " days"}::interval
     WHERE id = ${tenantId}`;
+}
+async function addLinks(text3) {
+  const added = [];
+  const errors = [];
+  let skipped = 0;
+  for (const line of text3.split(/\s+/).filter(Boolean)) {
+    try {
+      const p2 = parseLink(line);
+      const dup = await sql`SELECT 1 FROM proxies WHERE link = ${line}`;
+      if (dup.length) {
+        skipped += 1;
+        continue;
+      }
+      const [row] = await sql`
+        INSERT INTO proxies (name, link, protocol, outbound) VALUES (${p2.name}, ${line}, ${p2.protocol}, ${sql.json(p2.outbound)})
+        RETURNING id, name, protocol`;
+      added.push(row);
+    } catch (err) {
+      errors.push(`${line.slice(0, 40)}...: ${err.message}`);
+    }
+  }
+  return { added, errors, skipped };
+}
+function maybeBase64(text3) {
+  const t = text3.trim();
+  if (/^(vless|vmess|ss|trojan):\/\//m.test(t)) return t;
+  try {
+    const decoded = Buffer.from(t.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    if (/(vless|vmess|ss|trojan):\/\//.test(decoded)) return decoded;
+  } catch {
+  }
+  return t;
 }
 async function adminRoutes(app) {
   app.addHook("preHandler", requireAdmin);
@@ -82507,24 +82669,47 @@ async function adminRoutes(app) {
   });
   app.get("/admin/proxy", async function proxies() {
     const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
-    return { items: rows, xray: xrayStatus() };
+    const sub = await getSetting("subscription_url", null);
+    const failover = await getSetting("proxy_failover", true);
+    return { items: rows, xray: xrayStatus(), subscriptionUrl: sub, failover, failoverState: failoverState() };
   });
   app.post("/admin/proxy", async function addProxy(request) {
-    const b = parse6(external_exports.object({ links: external_exports.string().min(5).max(1e5) }), request.body);
-    const added = [];
-    const errors = [];
-    for (const line of b.links.split(/\s+/).filter(Boolean)) {
+    const b = parse6(external_exports.object({ links: external_exports.string().min(5).max(5e5) }), request.body);
+    return addLinks(maybeBase64(b.links));
+  });
+  app.post("/admin/proxy/subscription", async function importSub(request) {
+    const b = parse6(external_exports.object({ url: external_exports.string().url() }), request.body);
+    const res = await fetch(b.url, { headers: { "user-agent": "v2rayN/6.0" }, signal: AbortSignal.timeout(2e4) });
+    if (!res.ok) throw new HttpError(502, "subscription_fetch_failed", `${res.status}`);
+    const body = await res.text();
+    const result = await addLinks(maybeBase64(body));
+    await setSetting("subscription_url", b.url);
+    return result;
+  });
+  app.post("/admin/proxy/test-all", async function testAll() {
+    const rows = await sql`SELECT id, name, outbound FROM proxies ORDER BY id`;
+    const results = [];
+    for (const r of rows) {
       try {
-        const p2 = parseLink(line);
-        const [row] = await sql`
-          INSERT INTO proxies (name, link, protocol, outbound) VALUES (${p2.name}, ${line}, ${p2.protocol}, ${sql.json(p2.outbound)})
-          RETURNING id, name, protocol`;
-        added.push(row);
+        const ms = await testOutbound(r.outbound);
+        await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: true, ms });
       } catch (err) {
-        errors.push(`${line.slice(0, 40)}...: ${err.message}`);
+        await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now() WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: false, ms: null, error: String(err?.message ?? err).slice(0, 120) });
       }
     }
-    return { added, errors };
+    return { results, xray: xrayStatus() };
+  });
+  app.post("/admin/proxy/auto", async function autoBest() {
+    const best = await activateBest();
+    if (!best) throw new HttpError(502, "no_working_proxy");
+    return { ok: true, best, xray: xrayStatus() };
+  });
+  app.post("/admin/proxy/failover", async function setFailover(request) {
+    const b = parse6(external_exports.object({ enabled: external_exports.boolean() }), request.body);
+    await setSetting("proxy_failover", b.enabled);
+    return { ok: true, enabled: b.enabled };
   });
   app.post("/admin/proxy/:id/activate", async function activate(request) {
     const id = idParam(request.params);
@@ -84866,7 +85051,7 @@ async function contactRoutes(app) {
 import { randomUUID } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { mkdir as mkdir2 } from "node:fs/promises";
-import { join as join2 } from "node:path";
+import { join as join3 } from "node:path";
 import { pipeline } from "node:stream/promises";
 var EXT = {
   "image/jpeg": "jpg",
@@ -84897,7 +85082,7 @@ async function mediaRoutes(app) {
     const ext = extFor(mime, file2.filename ?? "");
     const id = `${request.tenant.id}_${randomUUID()}.${ext}`;
     await mkdir2(config.mediaDir, { recursive: true });
-    await pipeline(file2.file, createWriteStream(join2(config.mediaDir, id)));
+    await pipeline(file2.file, createWriteStream(join3(config.mediaDir, id)));
     if (file2.file.truncated) throw new HttpError(413, "file_too_large");
     return {
       mediaUrl: `${config.internalUrl.replace(/\/$/, "")}/media/${id}`,
@@ -84983,16 +85168,16 @@ async function groupRoutes(app) {
 }
 
 // src/routes/core.ts
-var failures = /* @__PURE__ */ new Map();
+var failures2 = /* @__PURE__ */ new Map();
 var MAX_FAILS = 5;
 var LOCK_MS = 15 * 6e4;
 function locked(key2) {
-  const f2 = failures.get(key2);
+  const f2 = failures2.get(key2);
   return !!f2 && f2.count >= MAX_FAILS && f2.until > Date.now();
 }
 function fail(key2) {
-  const f2 = failures.get(key2);
-  if (!f2 || f2.until < Date.now()) failures.set(key2, { count: 1, until: Date.now() + LOCK_MS });
+  const f2 = failures2.get(key2);
+  if (!f2 || f2.until < Date.now()) failures2.set(key2, { count: 1, until: Date.now() + LOCK_MS });
   else f2.count += 1;
 }
 async function coreRoutes(app) {
@@ -85010,7 +85195,7 @@ async function coreRoutes(app) {
       await new Promise((r) => setTimeout(r, 400 + Math.random() * 400));
       throw new HttpError(401, "invalid_credentials");
     }
-    failures.delete(key2);
+    failures2.delete(key2);
     const token = await reply.jwtSign({ sub: user.id }, { expiresIn: "7d" });
     return { token };
   });
@@ -85115,11 +85300,11 @@ function joinMedia(id) {
 }
 var basePath = ("/" + (process.env.NEXUS_BASE_PATH ?? "").replace(/^\/+|\/+$/g, "")).replace(/^\/$/, "");
 var internalPort = Number(process.env.NEXUS_INTERNAL_PORT ?? 3101);
-var webDir = process.env.NEXUS_WEB_DIR ?? join3(dirname3(fileURLToPath2(import.meta.url)), "..", "..", "web", "dist");
+var webDir = process.env.NEXUS_WEB_DIR ?? join4(dirname3(fileURLToPath2(import.meta.url)), "..", "..", "web", "dist");
 function httpsOptions() {
   const cert = process.env.NEXUS_TLS_CERT;
   const key2 = process.env.NEXUS_TLS_KEY;
-  if (cert && key2 && existsSync(cert) && existsSync(key2)) return { cert: readFileSync(cert), key: readFileSync(key2) };
+  if (cert && key2 && existsSync2(cert) && existsSync2(key2)) return { cert: readFileSync(cert), key: readFileSync(key2) };
   return void 0;
 }
 function errorHandler(app) {
@@ -85161,8 +85346,8 @@ async function buildPublic() {
     },
     { prefix: `${basePath}/api/v1` }
   );
-  if (existsSync(webDir)) {
-    const indexHtml = readFileSync(join3(webDir, "index.html"), "utf8").replace(
+  if (existsSync2(webDir)) {
+    const indexHtml = readFileSync(join4(webDir, "index.html"), "utf8").replace(
       "<head>",
       `<head><script>window.__NEXUS_BASE__=${JSON.stringify(basePath)}</script><base href="${basePath}/">`
     );
@@ -85223,8 +85408,10 @@ async function main() {
   const app = await buildPublic();
   await app.listen({ port: config.port, host: "0.0.0.0" });
   startScheduler(config.schedulerTickMs);
+  startProxyWatchdog(Number(process.env.NEXUS_PROXY_CHECK_SECONDS ?? 60));
   async function shutdown() {
     stopScheduler();
+    stopProxyWatchdog();
     await stopXray();
     await app.close();
     await internal.close();

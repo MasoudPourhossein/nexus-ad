@@ -3,6 +3,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import net from 'node:net';
 import { dirname } from 'node:path';
 import tls from 'node:tls';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { unlink } from 'node:fs/promises';
 
 export const XRAY_BIN = process.env.NEXUS_XRAY_BIN ?? 'xray';
 export const XRAY_CONFIG = process.env.NEXUS_XRAY_CONFIG ?? '/data/xray/config.json';
@@ -269,8 +273,14 @@ export function buildXrayConfig(outbound: Record<string, any> | null): Record<st
 let child: ChildProcess | null = null;
 let lastError = '';
 
-export function xrayStatus(): { running: boolean; error: string } {
-  return { running: child !== null && child.exitCode === null, error: lastError };
+export function xrayInstalled(): boolean {
+  if (XRAY_BIN.includes('/')) return existsSync(XRAY_BIN);
+  const dirs = (process.env.PATH ?? '').split(':');
+  return dirs.some(function has(d) { return d && existsSync(join(d, XRAY_BIN)); });
+}
+
+export function xrayStatus(): { running: boolean; error: string; installed: boolean } {
+  return { running: child !== null && child.exitCode === null, error: lastError, installed: xrayInstalled() };
 }
 
 export async function applyXray(outbound: Record<string, any> | null): Promise<void> {
@@ -316,10 +326,10 @@ export async function stopXray(): Promise<void> {
 }
 
 /** Open a TLS connection to target through the local HTTP proxy, return latency in ms. */
-export function testThroughProxy(target = 'web.whatsapp.com', timeoutMs = 10_000): Promise<number> {
+export function testThroughProxy(target = 'web.whatsapp.com', timeoutMs = 10_000, port = XRAY_HTTP_PORT): Promise<number> {
   const started = Date.now();
   return new Promise(function run(resolve, reject) {
-    const socket = net.connect(XRAY_HTTP_PORT, '127.0.0.1');
+    const socket = net.connect(port, '127.0.0.1');
     const timer = setTimeout(function timeout() {
       socket.destroy();
       reject(new Error('timeout'));
@@ -350,4 +360,39 @@ export function testThroughProxy(target = 'web.whatsapp.com', timeoutMs = 10_000
       });
     });
   });
+}
+
+function freePort(): Promise<number> {
+  return new Promise(function find(resolve, reject) {
+    const srv = net.createServer();
+    srv.listen(0, '127.0.0.1', function listening() {
+      const port = (srv.address() as net.AddressInfo).port;
+      srv.close(function closed() { resolve(port); });
+    });
+    srv.on('error', reject);
+  });
+}
+
+/** Spawn a throwaway Xray for one outbound, measure a TLS handshake to WhatsApp through it, kill it. */
+export async function testOutbound(outbound: Record<string, any>, timeoutMs = 9_000): Promise<number> {
+  if (!xrayInstalled()) throw new Error('xray_not_installed');
+  const port = await freePort();
+  const cfg = {
+    log: { loglevel: 'none' },
+    inbounds: [{ tag: 'http-in', listen: '127.0.0.1', port: port, protocol: 'http', settings: {} }],
+    outbounds: [{ ...outbound, tag: 'proxy' }, { protocol: 'freedom', tag: 'direct' }],
+  };
+  const file = join(tmpdir(), `xray-test-${port}.json`);
+  await writeFile(file, JSON.stringify(cfg));
+  const proc = spawn(XRAY_BIN, ['run', '-c', file], { stdio: ['ignore', 'ignore', 'pipe'] });
+  let err = '';
+  proc.stderr?.on('data', function onErr(b: Buffer) { err += b.toString().slice(-300); });
+  try {
+    await new Promise((r) => setTimeout(r, 700));
+    if (proc.exitCode !== null) throw new Error(`xray exited: ${err.trim() || 'bad config'}`);
+    return await testThroughProxy('web.whatsapp.com', timeoutMs, port);
+  } finally {
+    proc.kill('SIGKILL');
+    await unlink(file).catch(function ignore() {});
+  }
 }

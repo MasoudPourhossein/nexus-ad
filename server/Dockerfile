@@ -10,6 +10,8 @@ WORKDIR /app
 # Pre-built single-file server bundle: nothing is downloaded from npm at build time.
 COPY dist ./dist
 COPY migrations ./migrations
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 ENV NEXUS_XRAY_BIN=/usr/local/bin/xray
 EXPOSE 3100
-CMD ["node", "dist/index.js"]
+CMD ["/entrypoint.sh"]

@@ -5,8 +5,9 @@ import { requireAdmin } from '../auth.js';
 import { sql } from '../db.js';
 import { HttpError, idParam, notFound, parse } from '../http.js';
 import { listProviders } from '../providers/index.js';
-import { startActiveProxy, syncSessionsProxy } from '../settings.js';
-import { parseLink, testThroughProxy, xrayStatus } from '../xray.js';
+import { getSetting, setSetting, startActiveProxy, syncSessionsProxy } from '../settings.js';
+import { activateBest, failoverState } from '../failover.js';
+import { parseLink, testOutbound, testThroughProxy, xrayStatus } from '../xray.js';
 
 const planSchema = z.object({
   name: z.string().min(1).max(100),
@@ -24,6 +25,38 @@ async function assignPlan(tenantId: number, planId: number): Promise<void> {
     UPDATE tenants SET plan_id = ${plan.id}, credits = credits + ${plan.message_quota},
       plan_expires_at = GREATEST(COALESCE(plan_expires_at, now()), now()) + ${plan.duration_days + ' days'}::interval
     WHERE id = ${tenantId}`;
+}
+
+async function addLinks(text: string): Promise<{ added: unknown[]; errors: string[]; skipped: number }> {
+  const added: unknown[] = [];
+  const errors: string[] = [];
+  let skipped = 0;
+  for (const line of text.split(/\s+/).filter(Boolean)) {
+    try {
+      const p = parseLink(line);
+      const dup = await sql`SELECT 1 FROM proxies WHERE link = ${line}`;
+      if (dup.length) { skipped += 1; continue; }
+      const [row] = await sql`
+        INSERT INTO proxies (name, link, protocol, outbound) VALUES (${p.name}, ${line}, ${p.protocol}, ${sql.json(p.outbound)})
+        RETURNING id, name, protocol`;
+      added.push(row);
+    } catch (err: any) {
+      errors.push(`${line.slice(0, 40)}...: ${err.message}`);
+    }
+  }
+  return { added: added, errors: errors, skipped: skipped };
+}
+
+function maybeBase64(text: string): string {
+  const t = text.trim();
+  if (/^(vless|vmess|ss|trojan):\/\//m.test(t)) return t;
+  try {
+    const decoded = Buffer.from(t.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+    if (/(vless|vmess|ss|trojan):\/\//.test(decoded)) return decoded;
+  } catch {
+    // not base64
+  }
+  return t;
 }
 
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
@@ -133,25 +166,52 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/admin/proxy', async function proxies() {
     const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
-    return { items: rows, xray: xrayStatus() };
+    const sub = await getSetting<string | null>('subscription_url', null);
+    const failover = await getSetting<boolean>('proxy_failover', true);
+    return { items: rows, xray: xrayStatus(), subscriptionUrl: sub, failover: failover, failoverState: failoverState() };
   });
 
   app.post('/admin/proxy', async function addProxy(request) {
-    const b = parse(z.object({ links: z.string().min(5).max(100_000) }), request.body);
-    const added: unknown[] = [];
-    const errors: string[] = [];
-    for (const line of b.links.split(/\s+/).filter(Boolean)) {
+    const b = parse(z.object({ links: z.string().min(5).max(500_000) }), request.body);
+    return addLinks(maybeBase64(b.links));
+  });
+
+  app.post('/admin/proxy/subscription', async function importSub(request) {
+    const b = parse(z.object({ url: z.string().url() }), request.body);
+    const res = await fetch(b.url, { headers: { 'user-agent': 'v2rayN/6.0' }, signal: AbortSignal.timeout(20_000) });
+    if (!res.ok) throw new HttpError(502, 'subscription_fetch_failed', `${res.status}`);
+    const body = await res.text();
+    const result = await addLinks(maybeBase64(body));
+    await setSetting('subscription_url', b.url);
+    return result;
+  });
+
+  app.post('/admin/proxy/test-all', async function testAll() {
+    const rows = await sql<{ id: number; name: string; outbound: Record<string, any> }[]>`SELECT id, name, outbound FROM proxies ORDER BY id`;
+    const results: { id: number; name: string; ok: boolean; ms: number | null; error?: string }[] = [];
+    for (const r of rows) {
       try {
-        const p = parseLink(line);
-        const [row] = await sql`
-          INSERT INTO proxies (name, link, protocol, outbound) VALUES (${p.name}, ${line}, ${p.protocol}, ${sql.json(p.outbound)})
-          RETURNING id, name, protocol`;
-        added.push(row);
+        const ms = await testOutbound(r.outbound);
+        await sql`UPDATE proxies SET last_test_ok = TRUE, last_test_ms = ${ms}, last_test_at = now() WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: true, ms: ms });
       } catch (err: any) {
-        errors.push(`${line.slice(0, 40)}...: ${err.message}`);
+        await sql`UPDATE proxies SET last_test_ok = FALSE, last_test_ms = NULL, last_test_at = now() WHERE id = ${r.id}`;
+        results.push({ id: r.id, name: r.name, ok: false, ms: null, error: String(err?.message ?? err).slice(0, 120) });
       }
     }
-    return { added: added, errors: errors };
+    return { results: results, xray: xrayStatus() };
+  });
+
+  app.post('/admin/proxy/auto', async function autoBest() {
+    const best = await activateBest();
+    if (!best) throw new HttpError(502, 'no_working_proxy');
+    return { ok: true, best: best, xray: xrayStatus() };
+  });
+
+  app.post('/admin/proxy/failover', async function setFailover(request) {
+    const b = parse(z.object({ enabled: z.boolean() }), request.body);
+    await setSetting('proxy_failover', b.enabled);
+    return { ok: true, enabled: b.enabled };
   });
 
   app.post('/admin/proxy/:id/activate', async function activate(request) {
