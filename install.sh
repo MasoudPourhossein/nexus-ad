@@ -12,8 +12,22 @@ rnd() { head -c "${1:-24}" /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 
 [ "$(id -u)" -eq 0 ] || { echo -e "${RED}Run as root${NC}"; exit 1; }
 
 say "Installing Docker and dependencies..."
-if ! command -v docker >/dev/null; then curl -fsSL https://get.docker.com | sh; fi
-command -v openssl >/dev/null || { apt-get update -qq && apt-get install -y -qq openssl git; }
+if ! command -v docker >/dev/null; then
+  if ! curl -fsSL https://get.docker.com | sh; then
+    echo "  get.docker.com unreachable (filtered?), installing from the distro repo..."
+    apt-get update -qq && apt-get install -y -qq docker.io docker-compose-v2
+  fi
+fi
+command -v openssl >/dev/null || { apt-get update -qq && apt-get install -y -qq openssl; }
+command -v git >/dev/null || { apt-get update -qq && apt-get install -y -qq git; }
+systemctl enable --now docker 2>/dev/null || true
+MIRROR=$(ask "Is Docker Hub blocked for you (e.g. Iran)? Set an image mirror? (y/n)" "n")
+if [ "$MIRROR" = "y" ] && [ ! -f /etc/docker/daemon.json ]; then
+  mkdir -p /etc/docker
+  echo '{ "registry-mirrors": ["https://docker.arvancloud.ir"] }' > /etc/docker/daemon.json
+  systemctl restart docker 2>/dev/null || true
+  ok "Image mirror set (docker.arvancloud.ir)"
+fi
 ok "Docker ready"
 
 DIR="${NEXUS_DIR:-/opt/nexus-ad}"
