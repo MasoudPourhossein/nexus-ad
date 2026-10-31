@@ -103,8 +103,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     );
     const [t] = await sql`SELECT * FROM tenants WHERE id = ${id}`;
     if (!t) notFound();
+    const nextActive = t.role === 'admin' ? true : (b.active ?? t.active);
     await sql`
-      UPDATE tenants SET name = ${b.name ?? t.name}, active = ${b.active ?? t.active},
+      UPDATE tenants SET name = ${b.name ?? t.name}, active = ${nextActive},
         session_limit = ${b.sessionLimit === undefined ? t.session_limit : b.sessionLimit}
       WHERE id = ${id}`;
     if (b.password) await sql`UPDATE tenants SET password_hash = ${await bcrypt.hash(b.password, 10)} WHERE id = ${id}`;

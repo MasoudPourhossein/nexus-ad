@@ -50,7 +50,7 @@ export default function Tenants() {
                           </select>
                         )}
                         <button className="btn-ghost !p-1.5" title={t('addCredits')} onClick={() => setCredit(u)}><Coins size={15} /></button>
-                        <button className="btn-ghost !p-1.5" onClick={async () => { await api(`/admin/tenants/${u.id}`, { method: 'PATCH', body: { active: !u.active } }); void reload(); }}><KeyRound size={15} /></button>
+                        {u.role !== 'admin' && <button className="btn-ghost !p-1.5" title={u.active ? t('deactivate') : t('activate')} onClick={async () => { await api(`/admin/tenants/${u.id}`, { method: 'PATCH', body: { active: !u.active } }); void reload(); }}><KeyRound size={15} /></button>}
                         {u.role !== 'admin' && <button className="btn-danger !p-1.5" onClick={async () => { if (!confirm(t('confirmDelete'))) return; await api(`/admin/tenants/${u.id}`, { method: 'DELETE' }); void reload(); }}><Trash2 size={15} /></button>}
                       </div>
                     </td>
