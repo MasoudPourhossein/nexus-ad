@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, ClipboardPaste, FileUp, ListPlus, Search, Trash2, UserX, Users } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, upload } from '../api';
-import { Empty, Field, Loading, Modal, PageHeader, Phone, Progress, Tabs, useAsync, useToast } from '../components/ui';
+import { Empty, Field, Loading, Modal, PageHeader, Phone, Progress, Spinner, Tabs, useAsync, useToast } from '../components/ui';
 import { useI18n } from '../i18n';
 
 function ImportResult({ r }: { r: any }) {
@@ -16,22 +16,50 @@ function ImportResult({ r }: { r: any }) {
 }
 
 function ImportModal({ list, onClose }: { list: any; onClose: () => void }) {
-  const { t } = useI18n();
+  const { t, fmt } = useI18n();
   const toast = useToast();
   const [tab, setTab] = useState<'csv' | 'paste'>('csv');
   const [pctv, setPct] = useState<number | null>(null);
+  const [job, setJob] = useState<any>(null);
   const [result, setResult] = useState<any>(null);
   const [text, setText] = useState('');
   const [drag, setDrag] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+
+  function poll(jobId: string) {
+    if (timer.current) clearInterval(timer.current);
+    timer.current = setInterval(async () => {
+      try {
+        const j = await api(`/import-jobs/${jobId}`);
+        setJob(j);
+        if (j.status !== 'running') {
+          if (timer.current) clearInterval(timer.current);
+          if (j.status === 'failed') toast.err(new Error(j.error || t('importFailed')));
+        }
+      } catch {
+        /* keep polling */
+      }
+    }, 1500);
+  }
+
   async function send(file: File) {
     setResult(null);
+    setJob(null);
     setPct(0);
     try {
-      setResult(await upload(`/lists/${list.id}/import`, file, setPct));
+      const r = await upload(`/lists/${list.id}/import`, file, setPct);
+      setPct(null);
+      if (r.jobId) {
+        setJob({ status: 'running', rows: 0, imported: 0, invalid: 0, duplicates: 0 });
+        poll(r.jobId);
+      } else {
+        setResult(r);
+      }
     } catch (e) {
       toast.err(e);
-    } finally {
       setPct(null);
     }
   }
@@ -61,7 +89,23 @@ function ImportModal({ list, onClose }: { list: any; onClose: () => void }) {
               <div className="max-w-xs text-xs text-slate-500">{t('csvHelp')}</div>
               <input ref={input} type="file" accept=".csv,.txt,text/csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void send(f); e.target.value = ''; }} />
             </div>
-            {pctv !== null && <Progress value={pctv} total={100} />}
+            {pctv !== null && <div><div className="mb-1 text-xs text-slate-500">upload</div><Progress value={pctv} total={100} /></div>}
+            {job && (
+              <div className="space-y-2 rounded-xl bg-slate-50 p-4 dark:bg-white/[0.03]">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  {job.status === 'running' && <Spinner />}
+                  {job.status === 'running' ? t('importing') : job.status === 'done' ? t('importDone') : t('importFailed')}
+                </div>
+                <div className="text-xs text-slate-500">{fmt(job.rows)} {t('rowsRead')}</div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-lg bg-brand-500/10 py-2"><div className="text-slate-500">{t('imported')}</div><div className="font-bold text-brand-600 dark:text-brand-400">{fmt(job.imported)}</div></div>
+                  <div className="rounded-lg bg-amber-500/10 py-2"><div className="text-slate-500">{t('duplicates')}</div><div className="font-bold">{fmt(job.duplicates)}</div></div>
+                  <div className="rounded-lg bg-rose-500/10 py-2"><div className="text-slate-500">{t('invalidRows')}</div><div className="font-bold">{fmt(job.invalid)}</div></div>
+                </div>
+                {job.status === 'running' && <div className="text-xs text-slate-400">{t('keepOpen')}</div>}
+                {job.error && <div className="text-xs text-rose-500">{job.error}</div>}
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -69,9 +113,9 @@ function ImportModal({ list, onClose }: { list: any; onClose: () => void }) {
               <textarea className="input ltr h-48 font-mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={'09121234567\n09141234567'} />
             </Field>
             <button className="btn-primary w-full" disabled={!text.trim()} onClick={paste}><ClipboardPaste size={16} /> {t('add')}</button>
+            {result && <ImportResult r={result} />}
           </>
         )}
-        {result && <ImportResult r={result} />}
       </div>
     </Modal>
   );

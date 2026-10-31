@@ -28,6 +28,8 @@ import { startActiveProxy } from './settings.js';
 import { stopXray } from './xray.js';
 
 function joinMedia(id: string): string { return pathJoin(config.mediaDir, id); }
+// Make BigInt values JSON-serializable everywhere (ids come back as BigInt from pg).
+(BigInt.prototype as any).toJSON = function toJSON() { return this.toString(); };
 const basePath = ('/' + (process.env.NEXUS_BASE_PATH ?? '').replace(/^\/+|\/+$/g, '')).replace(/^\/$/, '');
 const internalPort = Number(process.env.NEXUS_INTERNAL_PORT ?? 3101);
 const webDir = process.env.NEXUS_WEB_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'web', 'dist');
