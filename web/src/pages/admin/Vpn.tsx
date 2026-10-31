@@ -59,6 +59,21 @@ export default function Vpn() {
           <div className="flex-1"><div className="text-sm font-semibold">{running ? t('xrayRunning') : t('xrayStopped')}</div>{data?.xray?.error && <div className="text-xs text-rose-400">{data.xray.error}</div>}</div>
           {hasActive && <button className="btn-danger" disabled={!!busy} onClick={() => run('off', async () => { await api('/admin/proxy/deactivate', { method: 'POST' }); })}><Power size={16} /> {t('deactivate')}</button>}
         </div>
+        {data?.sessions?.length > 0 && (
+          <div className="border-t border-slate-100 pt-3 dark:border-white/5">
+            <div className="mb-2 flex items-center justify-between"><span className="label !mb-0">{t('sessionsProxy')}</span>
+              {hasActive && <button className="btn-ghost !px-2 !py-1 text-xs" disabled={!!busy} onClick={() => run('reapply', async () => { const r = await api(`/admin/proxy/${data.items.find((p: any) => p.active).id}/activate`, { method: 'POST' }); if (r.sessions?.failed?.length) toast.err(`${t('upstream_error')}: ${r.sessions.failed.join(', ')}`); else toast.ok(t('saved')); })}>{t('reapply')}</button>}
+            </div>
+            <div className="space-y-1 text-sm">
+              {data.sessions.map((s: any) => (
+                <div key={s.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-1.5 dark:bg-white/[0.03]">
+                  <span className="font-medium">{s.label} <span className="text-xs text-slate-500">· {t(s.status)}</span></span>
+                  {s.proxy ? <span className="badge bg-brand-500/15 text-brand-700 dark:text-brand-300">{t('proxyApplied')} · <span className="ltr font-mono">{s.proxy}</span></span> : <span className="badge bg-rose-500/10 text-rose-600">{t('proxyNotApplied')}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="border-t border-slate-100 pt-3 dark:border-white/5">
           <Toggle checked={data?.failover !== false} onChange={(v) => run('fo', async () => { await api('/admin/proxy/failover', { body: { enabled: v } }); })} label={t('failover')} />
         </div>

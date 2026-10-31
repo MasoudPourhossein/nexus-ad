@@ -7,6 +7,8 @@ import { HttpError, idParam, notFound, parse } from '../http.js';
 import { listProviders } from '../providers/index.js';
 import { getSetting, setSetting, startActiveProxy, syncSessionsProxy } from '../settings.js';
 import { activateBest, failoverState } from '../failover.js';
+import { waha } from '../waha.js';
+import { XRAY_ADVERTISE } from '../xray.js';
 import { parseLink, testOutbound, testThroughProxy, xrayStatus } from '../xray.js';
 
 const planSchema = z.object({
@@ -168,7 +170,18 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
     const sub = await getSetting<string | null>('subscription_url', null);
     const failover = await getSetting<boolean>('proxy_failover', true);
-    return { items: rows, xray: xrayStatus(), subscriptionUrl: sub, failover: failover, failoverState: failoverState() };
+    // Ask WAHA what proxy each session is really running with, so the UI never lies.
+    const sessionRows = await sql<{ id: number; label: string; name: string }[]>`SELECT id, label, name FROM wa_sessions ORDER BY id`;
+    const sessions = [];
+    for (const srow of sessionRows) {
+      try {
+        const info = await waha.getSession(srow.name);
+        sessions.push({ id: srow.id, label: srow.label, status: info?.status ?? 'UNKNOWN', proxy: info?.config?.proxy?.server ?? null });
+      } catch (err: any) {
+        sessions.push({ id: srow.id, label: srow.label, status: 'UNREACHABLE', proxy: null, error: String(err?.message ?? err).slice(0, 120) });
+      }
+    }
+    return { items: rows, xray: xrayStatus(), subscriptionUrl: sub, failover: failover, failoverState: failoverState(), sessions: sessions, advertise: XRAY_ADVERTISE };
   });
 
   app.post('/admin/proxy', async function addProxy(request) {

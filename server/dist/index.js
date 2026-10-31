@@ -82671,7 +82671,17 @@ async function adminRoutes(app) {
     const rows = await sql`SELECT id, name, protocol, active, last_test_ok, last_test_ms, last_test_at, created_at, outbound->'streamSettings'->>'network' AS network, outbound->'streamSettings'->>'security' AS security FROM proxies ORDER BY id`;
     const sub = await getSetting("subscription_url", null);
     const failover = await getSetting("proxy_failover", true);
-    return { items: rows, xray: xrayStatus(), subscriptionUrl: sub, failover, failoverState: failoverState() };
+    const sessionRows = await sql`SELECT id, label, name FROM wa_sessions ORDER BY id`;
+    const sessions = [];
+    for (const srow of sessionRows) {
+      try {
+        const info = await waha.getSession(srow.name);
+        sessions.push({ id: srow.id, label: srow.label, status: info?.status ?? "UNKNOWN", proxy: info?.config?.proxy?.server ?? null });
+      } catch (err) {
+        sessions.push({ id: srow.id, label: srow.label, status: "UNREACHABLE", proxy: null, error: String(err?.message ?? err).slice(0, 120) });
+      }
+    }
+    return { items: rows, xray: xrayStatus(), subscriptionUrl: sub, failover, failoverState: failoverState(), sessions, advertise: XRAY_ADVERTISE };
   });
   app.post("/admin/proxy", async function addProxy(request) {
     const b = parse6(external_exports.object({ links: external_exports.string().min(5).max(5e5) }), request.body);
