@@ -49,15 +49,31 @@ async function onAck(session: SessionInfo, payload: any): Promise<void> {
   }
 }
 
-async function resolvePhone(session: SessionInfo, chatId: string | undefined): Promise<string | null> {
-  const direct = phoneFromChatId(chatId);
-  if (direct) return direct;
-  if (chatId?.endsWith('@lid')) {
+async function resolvePhone(session: SessionInfo, payload: any): Promise<string | null> {
+  const key = payload?._data?.key ?? {};
+  // Newer WhatsApp delivers LIDs; the real number usually rides along in one of these.
+  const candidates: (string | undefined)[] = [
+    key.senderPn,
+    key.remoteJidAlt,
+    key.participantPn,
+    payload?._data?.senderPn,
+    payload?._data?.remoteJidAlt,
+    payload?.from,
+    payload?.participant,
+  ];
+  for (const c of candidates) {
+    const direct = phoneFromChatId(c);
+    if (direct) return direct;
+  }
+  const lid = candidates.find(function isLid(c) { return typeof c === 'string' && c.endsWith('@lid'); });
+  if (lid) {
     try {
-      const res = await waha.lidToPhone(session.name, chatId);
-      return phoneFromChatId(res?.pn);
-    } catch {
-      return null;
+      const res = await waha.lidToPhone(session.name, lid);
+      const pn = phoneFromChatId(res?.pn);
+      if (pn) return pn;
+      console.warn(`[msg] LID ${lid} has no known phone (lids endpoint returned ${JSON.stringify(res)})`);
+    } catch (err: any) {
+      console.warn(`[msg] LID lookup failed for ${lid}: ${err?.message ?? err}`);
     }
   }
   return null;
@@ -83,8 +99,11 @@ async function onMessage(session: SessionInfo, payload: any): Promise<void> {
   if (payload.fromMe) return;
   const from: string | undefined = payload.from;
   if (!from || from.endsWith('@g.us') || from.endsWith('@newsletter') || from === 'status@broadcast') return;
-  const phone = await resolvePhone(session, payload._data?.key?.senderPn ?? payload._data?.senderPn ?? from);
-  if (!phone) return;
+  const phone = await resolvePhone(session, payload);
+  if (!phone) {
+    console.warn(`[msg] could not resolve sender phone from=${from} keys=${JSON.stringify(payload?._data?.key ?? {})}`);
+    return;
+  }
   const body = String(payload.body ?? '');
   const text = normalizeText(body);
   console.log(`[msg] from=${phone} text=${JSON.stringify(body)} norm=${JSON.stringify(text)}`);
