@@ -50,6 +50,8 @@ services:
       NEXUS_XRAY_HTTP_PORT: "10809"
     volumes:
       - ./web/dist:/app/web:ro
+      - ./server/dist:/app/dist:ro
+      - ./server/migrations:/app/migrations:ro
       - xray-data:/data/xray
       - media-data:/data/media
       - ${CERT_DIR:-./certs}:/certs:ro
