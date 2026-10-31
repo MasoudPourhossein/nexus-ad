@@ -55,7 +55,7 @@ async function buildPublic(): Promise<FastifyInstance> {
     bodyLimit: 10 * 1024 * 1024,
     requestTimeout: Number(process.env.NEXUS_REQUEST_TIMEOUT_MS ?? 30_000),
     connectionTimeout: Number(process.env.NEXUS_CONNECTION_TIMEOUT_MS ?? 20_000),
-    maxParamLength: 200,
+    routerOptions: { maxParamLength: 200 },
     ...(https ? { https: https } : {}),
   } as any) as unknown as FastifyInstance;
   errorHandler(app);

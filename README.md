@@ -8,21 +8,20 @@ reachable where it is blocked.
 
 ---
 
-## Install (Proxmox LXC, Debian/Ubuntu VM)
+## Install (one line — works inside Iran and abroad)
 
-This repository is private, so clone it with your GitHub credentials and run
-the installer from the clone (a `curl | bash` one-liner cannot read a private
-repo), as root:
+Fresh Ubuntu/Debian LXC or VM, as root:
 
 ```bash
-git clone https://github.com/MasoudPourhossein/nexus-ad /opt/nexus-ad
+apt install -y git && git clone https://github.com/MasoudPourhossein/nexus-ad /opt/nexus-ad && bash /opt/nexus-ad/install.sh
 ```
 
-```bash
-bash /opt/nexus-ad/install.sh
-```
+The installer detects blocked registries (Docker Hub / docker.com are filtered
+in Iran) and automatically switches to distro Docker packages plus an image
+mirror. **Nothing is ever downloaded from npm on the server**: the API is
+shipped as a pre-built single-file bundle and the dashboard as static files.
 
-The installer asks for:
+It asks for:
 
 - **Dashboard port** — defaults to a random high port that is hard to scan.
 - **Admin email / password** — the first admin account.
@@ -31,22 +30,32 @@ The installer asks for:
   or 443 and no domain required. Import `certs/cert.pem` in the browser to drop
   the warning.
 
-It installs Docker if missing, writes a `.env` with strong random secrets,
-builds the dashboard, starts the containers, and installs a `nexus` command.
-
 **Proxmox LXC:** enable `nesting=1` and `keyctl=1` on the container
 (Options → Features) so Docker runs inside it.
 
-### Manage and update
+### Manage, update, remove
 
 ```bash
-nexus update            # pull the latest version, rebuild, restart (data kept)
+nexus update            # pull the latest version and restart (data kept)
 nexus status            # container status
 nexus logs [service]    # follow logs (default: the app)
 nexus restart           # restart
 nexus backup            # dump the database to a .sql.gz
 nexus restore <file>    # restore a dump
+nexus uninstall         # remove everything incl. data; add --docker to remove Docker too
 ```
+
+Wipe a box completely (app + data + Docker) in one line:
+
+```bash
+bash /opt/nexus-ad/uninstall.sh --docker
+```
+
+### Developers: shipping a new version
+
+Servers run committed artifacts, so after changing code run `./build.sh`
+(bundles `server/dist/index.js` and builds `web/dist`), commit the result and
+push. `nexus update` on every server then just pulls and restarts.
 
 ---
 

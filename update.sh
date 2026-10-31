@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
-# Update Nexus Ad to the latest version: pull code, rebuild dashboard, recreate containers.
+# Update Nexus Ad: pull pre-built code and recreate containers (data preserved).
 set -euo pipefail
-GREEN='\033[1;32m'; BLUE='\033[1;34m'; NC='\033[0m'
 DIR="${NEXUS_DIR:-/opt/nexus-ad}"
 cd "$DIR"
-echo -e "${BLUE}==>${NC} Pulling latest code..."
+echo "==> Pulling latest..."
 git pull --ff-only
-cd "$DIR"
-echo -e "${BLUE}==>${NC} Rebuilding dashboard..."
-if command -v npm >/dev/null; then (cd web && npm install -q && npm run build); \
-else docker run --rm -v "$PWD/web":/w -w /w node:22-slim sh -c "npm install -q && npm run build"; fi
-echo -e "${BLUE}==>${NC} Rebuilding and restarting containers (data is preserved)..."
-docker compose pull
+echo "==> Recreating containers (no npm, no builds; data is preserved)..."
+docker compose pull --ignore-buildable 2>/dev/null || docker compose pull || true
 docker compose up -d --build
 docker image prune -f >/dev/null 2>&1 || true
-echo -e "${GREEN}✓${NC} Nexus Ad updated. Migrations run automatically on start."
+echo "✓ Nexus Ad updated. Migrations run automatically on start."
