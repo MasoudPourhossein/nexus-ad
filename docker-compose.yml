@@ -68,6 +68,12 @@ services:
     depends_on: [nexus]
     profiles: [tunnel]
 
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "${DOCKER_MTU:-1400}"
+
 volumes:
   db-data:
   media-data:

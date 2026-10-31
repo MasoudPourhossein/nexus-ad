@@ -79,8 +79,8 @@ export default function Vpn() {
         </div>
         {wa && (
           <div className={`rounded-xl px-4 py-3 text-sm ${wa.verdict === 'reachable' ? 'bg-brand-500/10 text-brand-700 dark:text-brand-300' : 'bg-rose-500/10 text-rose-700 dark:text-rose-300'}`}>
-            <div className="font-semibold">{wa.verdict === 'reachable' ? t('waReachable') : wa.verdict === 'ip_blocked_by_whatsapp' ? t('waBlocked') : t('waNetErr')}</div>
-            <div className="mt-1 text-xs opacity-80 ltr font-mono">{wa.line ?? wa.error} {wa.ms ? `· ${wa.ms} ms` : ''}</div>
+            <div className="font-semibold">{wa.verdict === 'reachable' ? t('waReachable') : wa.verdict === 'ip_blocked_by_whatsapp' ? t('waBlocked') : wa.verdict === 'stalled_mtu' ? t('waStalled') : t('waNetErr')}</div>
+            <div className="mt-1 text-xs opacity-80 ltr font-mono">{wa.line ?? wa.error} {wa.ms ? `· ${wa.ms} ms` : ''} {wa.bytes !== undefined ? `· ${wa.bytes} B${wa.complete ? '' : ' (incomplete)'}` : ''}</div>
             {wa.verdict === 'ip_blocked_by_whatsapp' && <div className="mt-1 text-xs opacity-80">{t('ipBlockedHint')}</div>}
           </div>
         )}

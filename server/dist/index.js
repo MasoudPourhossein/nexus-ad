@@ -62076,16 +62076,30 @@ async function testOutbound(outbound, timeoutMs = 9e3) {
     });
   }
 }
-function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 12e3) {
+function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 15e3) {
   const target = "web.whatsapp.com";
   const started = Date.now();
   return new Promise(function run2(resolve, reject) {
     const socket = net2.connect(port, "127.0.0.1");
-    const timer3 = setTimeout(function timeout() {
+    let status = 0;
+    let line = "";
+    let bytes = 0;
+    let done2 = false;
+    const finish2 = (complete) => {
+      if (done2) return;
+      done2 = true;
+      clearTimeout(timer3);
       socket.destroy();
-      reject(new Error("timeout"));
+      if (!status) return reject(new Error(bytes ? "no http status" : "timeout"));
+      resolve({ ms: Date.now() - started, status, line, bytes, complete });
+    };
+    const timer3 = setTimeout(function timeout() {
+      finish2(false);
     }, timeoutMs);
     const fail2 = (err) => {
+      if (done2) return;
+      if (status) return finish2(false);
+      done2 = true;
       clearTimeout(timer3);
       socket.destroy();
       reject(err);
@@ -62098,29 +62112,33 @@ Host: ${target}:443\r
 `);
     });
     socket.once("data", function onData(buf) {
-      const line = buf.toString().split("\r\n")[0];
-      if (!/ 200 /.test(line)) return fail2(new Error(`proxy answered: ${line}`));
+      const first = buf.toString().split("\r\n")[0];
+      if (!/ 200 /.test(first)) return fail2(new Error(`proxy answered: ${first}`));
       const secure = tls2.connect({ socket, servername: target }, function onSecure() {
         secure.write(`GET / HTTP/1.1\r
 Host: ${target}\r
 User-Agent: Mozilla/5.0\r
+Accept: */*\r
 Connection: close\r
 \r
 `);
       });
       let head = "";
       secure.on("data", function onHttp(d2) {
-        head += d2.toString();
-        const m = head.match(/^HTTP\/\d\.\d (\d{3})[^\r\n]*/);
-        if (m) {
-          clearTimeout(timer3);
-          secure.destroy();
-          resolve({ ms: Date.now() - started, status: Number(m[1]), line: m[0] });
+        bytes += d2.length;
+        if (!status) {
+          head += d2.toString("latin1");
+          const m = head.match(/^HTTP\/\d\.\d (\d{3})[^\r\n]*/);
+          if (m) {
+            status = Number(m[1]);
+            line = m[0];
+          }
         }
+        if (bytes > 2e5) finish2(true);
       });
       secure.once("error", fail2);
       secure.once("close", function onClose() {
-        if (!head) fail2(new Error("closed without response"));
+        finish2(true);
       });
     });
   });
@@ -82781,7 +82799,16 @@ async function adminRoutes(app) {
     try {
       const r = await probeWhatsApp();
       const blocked = r.status === 403 || r.status === 405 || r.status === 429;
-      return { ok: !blocked, status: r.status, line: r.line, ms: r.ms, verdict: blocked ? "ip_blocked_by_whatsapp" : "reachable" };
+      const stalled = !blocked && !r.complete && r.bytes < 2e4;
+      return {
+        ok: !blocked && !stalled,
+        status: r.status,
+        line: r.line,
+        ms: r.ms,
+        bytes: r.bytes,
+        complete: r.complete,
+        verdict: blocked ? "ip_blocked_by_whatsapp" : stalled ? "stalled_mtu" : "reachable"
+      };
     } catch (err) {
       return { ok: false, status: null, error: String(err?.message ?? err).slice(0, 160), verdict: "proxy_or_network_error" };
     }

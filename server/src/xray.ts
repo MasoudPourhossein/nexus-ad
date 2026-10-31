@@ -402,16 +402,28 @@ export async function testOutbound(outbound: Record<string, any>, timeoutMs = 9_
  * Returns the HTTP status WhatsApp answered with. 2xx/3xx = reachable; 403/405/429 = this
  * exit IP is refused by WhatsApp; errors = proxy/network problem.
  */
-export function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 12_000): Promise<{ ms: number; status: number; line: string }> {
+export function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 15_000): Promise<{ ms: number; status: number; line: string; bytes: number; complete: boolean }> {
   const target = 'web.whatsapp.com';
   const started = Date.now();
   return new Promise(function run(resolve, reject) {
     const socket = net.connect(port, '127.0.0.1');
-    const timer = setTimeout(function timeout() {
+    let status = 0;
+    let line = '';
+    let bytes = 0;
+    let done = false;
+    const finish = (complete: boolean) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
       socket.destroy();
-      reject(new Error('timeout'));
-    }, timeoutMs);
+      if (!status) return reject(new Error(bytes ? 'no http status' : 'timeout'));
+      resolve({ ms: Date.now() - started, status: status, line: line, bytes: bytes, complete: complete });
+    };
+    const timer = setTimeout(function timeout() { finish(false); }, timeoutMs);
     const fail = (err: Error) => {
+      if (done) return;
+      if (status) return finish(false);
+      done = true;
       clearTimeout(timer);
       socket.destroy();
       reject(err);
@@ -421,25 +433,23 @@ export function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 12_000): Promis
       socket.write(`CONNECT ${target}:443 HTTP/1.1\r\nHost: ${target}:443\r\n\r\n`);
     });
     socket.once('data', function onData(buf) {
-      const line = buf.toString().split('\r\n')[0];
-      if (!/ 200 /.test(line)) return fail(new Error(`proxy answered: ${line}`));
+      const first = buf.toString().split('\r\n')[0];
+      if (!/ 200 /.test(first)) return fail(new Error(`proxy answered: ${first}`));
       const secure = tls.connect({ socket: socket, servername: target }, function onSecure() {
-        secure.write(`GET / HTTP/1.1\r\nHost: ${target}\r\nUser-Agent: Mozilla/5.0\r\nConnection: close\r\n\r\n`);
+        secure.write(`GET / HTTP/1.1\r\nHost: ${target}\r\nUser-Agent: Mozilla/5.0\r\nAccept: */*\r\nConnection: close\r\n\r\n`);
       });
       let head = '';
       secure.on('data', function onHttp(d: Buffer) {
-        head += d.toString();
-        const m = head.match(/^HTTP\/\d\.\d (\d{3})[^\r\n]*/);
-        if (m) {
-          clearTimeout(timer);
-          secure.destroy();
-          resolve({ ms: Date.now() - started, status: Number(m[1]), line: m[0] });
+        bytes += d.length;
+        if (!status) {
+          head += d.toString('latin1');
+          const m = head.match(/^HTTP\/\d\.\d (\d{3})[^\r\n]*/);
+          if (m) { status = Number(m[1]); line = m[0]; }
         }
+        if (bytes > 200_000) finish(true);
       });
       secure.once('error', fail);
-      secure.once('close', function onClose() {
-        if (!head) fail(new Error('closed without response'));
-      });
+      secure.once('close', function onClose() { finish(true); });
     });
   });
 }

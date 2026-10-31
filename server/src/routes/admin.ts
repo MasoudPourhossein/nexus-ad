@@ -238,7 +238,12 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     try {
       const r = await probeWhatsApp();
       const blocked = r.status === 403 || r.status === 405 || r.status === 429;
-      return { ok: !blocked, status: r.status, line: r.line, ms: r.ms, verdict: blocked ? 'ip_blocked_by_whatsapp' : 'reachable' };
+      const stalled = !blocked && !r.complete && r.bytes < 20_000;
+      return {
+        ok: !blocked && !stalled,
+        status: r.status, line: r.line, ms: r.ms, bytes: r.bytes, complete: r.complete,
+        verdict: blocked ? 'ip_blocked_by_whatsapp' : stalled ? 'stalled_mtu' : 'reachable',
+      };
     } catch (err: any) {
       return { ok: false, status: null, error: String(err?.message ?? err).slice(0, 160), verdict: 'proxy_or_network_error' };
     }
