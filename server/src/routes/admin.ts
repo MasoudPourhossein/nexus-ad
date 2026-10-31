@@ -9,7 +9,7 @@ import { getSetting, setSetting, startActiveProxy, syncSessionsProxy } from '../
 import { activateBest, failoverState } from '../failover.js';
 import { waha } from '../waha.js';
 import { XRAY_ADVERTISE } from '../xray.js';
-import { parseLink, testOutbound, testThroughProxy, xrayStatus } from '../xray.js';
+import { parseLink, probeWhatsApp, testOutbound, testThroughProxy, xrayStatus } from '../xray.js';
 
 const planSchema = z.object({
   name: z.string().min(1).max(100),
@@ -219,6 +219,29 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const best = await activateBest();
     if (!best) throw new HttpError(502, 'no_working_proxy');
     return { ok: true, best: best, xray: xrayStatus() };
+  });
+
+  app.get('/admin/proxy/ping', async function livePing() {
+    const active = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
+    if (!active.length) return { ok: false, error: 'no_active_proxy' };
+    try {
+      const ms = await testThroughProxy('web.whatsapp.com', 6_000);
+      return { ok: true, ms: ms };
+    } catch (err: any) {
+      return { ok: false, error: String(err?.message ?? err).slice(0, 120) };
+    }
+  });
+
+  app.post('/admin/proxy/check-whatsapp', async function checkWhatsApp() {
+    const active = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
+    if (!active.length) throw new HttpError(400, 'no_active_proxy');
+    try {
+      const r = await probeWhatsApp();
+      const blocked = r.status === 403 || r.status === 405 || r.status === 429;
+      return { ok: !blocked, status: r.status, line: r.line, ms: r.ms, verdict: blocked ? 'ip_blocked_by_whatsapp' : 'reachable' };
+    } catch (err: any) {
+      return { ok: false, status: null, error: String(err?.message ?? err).slice(0, 160), verdict: 'proxy_or_network_error' };
+    }
   });
 
   app.post('/admin/proxy/failover', async function setFailover(request) {

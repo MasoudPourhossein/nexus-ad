@@ -1,5 +1,5 @@
 import { Activity, AlertTriangle, Link2, Plus, Power, ShieldCheck, Trash2, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../api';
 import { Empty, Field, Loading, Modal, PageHeader, Toggle, useAsync, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n';
@@ -12,6 +12,17 @@ export default function Vpn() {
   const [links, setLinks] = useState('');
   const [sub, setSub] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [live, setLive] = useState<{ ok: boolean; ms?: number; error?: string } | null>(null);
+  const [wa, setWa] = useState<any>(null);
+  const activeNow = data?.items?.some((p: any) => p.active);
+  useEffect(() => {
+    if (!activeNow) { setLive(null); return; }
+    let stop = false;
+    const poll = async () => { try { const r = await api('/admin/proxy/ping'); if (!stop) setLive(r); } catch { /* ignore */ } };
+    void poll();
+    const id = setInterval(poll, 5000);
+    return () => { stop = true; clearInterval(id); };
+  }, [activeNow]);
 
   async function run(key: string, fn: () => Promise<void>) {
     setBusy(key);
@@ -57,8 +68,22 @@ export default function Vpn() {
         <div className="flex items-center gap-3">
           <div className={`grid h-10 w-10 place-items-center rounded-xl ${running ? 'bg-brand-500/15 text-brand-500' : 'bg-slate-500/10 text-slate-400'}`}><Zap size={20} /></div>
           <div className="flex-1"><div className="text-sm font-semibold">{running ? t('xrayRunning') : t('xrayStopped')}</div>{data?.xray?.error && <div className="text-xs text-rose-400">{data.xray.error}</div>}</div>
+          {activeNow && (
+            <div className="text-end">
+              <div className="text-[11px] text-slate-500">{t('livePing')}</div>
+              <div className={`text-xl font-bold tabular-nums ${live?.ok ? 'text-brand-500' : 'text-rose-500'}`}>{live ? (live.ok ? `${live.ms} ms` : t('error')) : '…'}</div>
+            </div>
+          )}
+          {activeNow && <button className="btn-outline" disabled={!!busy} onClick={() => run('wa', async () => { setWa(await api('/admin/proxy/check-whatsapp', { method: 'POST' })); })}><Activity size={16} /> {busy === 'wa' ? t('testing') : t('checkWa')}</button>}
           {hasActive && <button className="btn-danger" disabled={!!busy} onClick={() => run('off', async () => { await api('/admin/proxy/deactivate', { method: 'POST' }); })}><Power size={16} /> {t('deactivate')}</button>}
         </div>
+        {wa && (
+          <div className={`rounded-xl px-4 py-3 text-sm ${wa.verdict === 'reachable' ? 'bg-brand-500/10 text-brand-700 dark:text-brand-300' : 'bg-rose-500/10 text-rose-700 dark:text-rose-300'}`}>
+            <div className="font-semibold">{wa.verdict === 'reachable' ? t('waReachable') : wa.verdict === 'ip_blocked_by_whatsapp' ? t('waBlocked') : t('waNetErr')}</div>
+            <div className="mt-1 text-xs opacity-80 ltr font-mono">{wa.line ?? wa.error} {wa.ms ? `· ${wa.ms} ms` : ''}</div>
+            {wa.verdict === 'ip_blocked_by_whatsapp' && <div className="mt-1 text-xs opacity-80">{t('ipBlockedHint')}</div>}
+          </div>
+        )}
         {data?.sessions?.length > 0 && (
           <div className="border-t border-slate-100 pt-3 dark:border-white/5">
             <div className="mb-2 flex items-center justify-between"><span className="label !mb-0">{t('sessionsProxy')}</span>

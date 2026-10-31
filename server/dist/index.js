@@ -62076,6 +62076,55 @@ async function testOutbound(outbound, timeoutMs = 9e3) {
     });
   }
 }
+function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 12e3) {
+  const target = "web.whatsapp.com";
+  const started = Date.now();
+  return new Promise(function run2(resolve, reject) {
+    const socket = net2.connect(port, "127.0.0.1");
+    const timer3 = setTimeout(function timeout() {
+      socket.destroy();
+      reject(new Error("timeout"));
+    }, timeoutMs);
+    const fail2 = (err) => {
+      clearTimeout(timer3);
+      socket.destroy();
+      reject(err);
+    };
+    socket.once("error", fail2);
+    socket.once("connect", function onConnect() {
+      socket.write(`CONNECT ${target}:443 HTTP/1.1\r
+Host: ${target}:443\r
+\r
+`);
+    });
+    socket.once("data", function onData(buf) {
+      const line = buf.toString().split("\r\n")[0];
+      if (!/ 200 /.test(line)) return fail2(new Error(`proxy answered: ${line}`));
+      const secure = tls2.connect({ socket, servername: target }, function onSecure() {
+        secure.write(`GET / HTTP/1.1\r
+Host: ${target}\r
+User-Agent: Mozilla/5.0\r
+Connection: close\r
+\r
+`);
+      });
+      let head = "";
+      secure.on("data", function onHttp(d2) {
+        head += d2.toString();
+        const m = head.match(/^HTTP\/\d\.\d (\d{3})[^\r\n]*/);
+        if (m) {
+          clearTimeout(timer3);
+          secure.destroy();
+          resolve({ ms: Date.now() - started, status: Number(m[1]), line: m[0] });
+        }
+      });
+      secure.once("error", fail2);
+      secure.once("close", function onClose() {
+        if (!head) fail2(new Error("closed without response"));
+      });
+    });
+  });
+}
 
 // src/waha.ts
 var WahaError = class extends Error {
@@ -82715,6 +82764,27 @@ async function adminRoutes(app) {
     const best = await activateBest();
     if (!best) throw new HttpError(502, "no_working_proxy");
     return { ok: true, best, xray: xrayStatus() };
+  });
+  app.get("/admin/proxy/ping", async function livePing() {
+    const active2 = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
+    if (!active2.length) return { ok: false, error: "no_active_proxy" };
+    try {
+      const ms = await testThroughProxy("web.whatsapp.com", 6e3);
+      return { ok: true, ms };
+    } catch (err) {
+      return { ok: false, error: String(err?.message ?? err).slice(0, 120) };
+    }
+  });
+  app.post("/admin/proxy/check-whatsapp", async function checkWhatsApp() {
+    const active2 = await sql`SELECT id FROM proxies WHERE active LIMIT 1`;
+    if (!active2.length) throw new HttpError(400, "no_active_proxy");
+    try {
+      const r = await probeWhatsApp();
+      const blocked = r.status === 403 || r.status === 405 || r.status === 429;
+      return { ok: !blocked, status: r.status, line: r.line, ms: r.ms, verdict: blocked ? "ip_blocked_by_whatsapp" : "reachable" };
+    } catch (err) {
+      return { ok: false, status: null, error: String(err?.message ?? err).slice(0, 160), verdict: "proxy_or_network_error" };
+    }
   });
   app.post("/admin/proxy/failover", async function setFailover(request) {
     const b = parse6(external_exports.object({ enabled: external_exports.boolean() }), request.body);

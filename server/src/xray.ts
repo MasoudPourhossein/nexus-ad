@@ -396,3 +396,50 @@ export async function testOutbound(outbound: Record<string, any>, timeoutMs = 9_
     await unlink(file).catch(function ignore() {});
   }
 }
+
+/**
+ * Through the local HTTP proxy: CONNECT → TLS → "GET / HTTP/1.1" to web.whatsapp.com.
+ * Returns the HTTP status WhatsApp answered with. 2xx/3xx = reachable; 403/405/429 = this
+ * exit IP is refused by WhatsApp; errors = proxy/network problem.
+ */
+export function probeWhatsApp(port = XRAY_HTTP_PORT, timeoutMs = 12_000): Promise<{ ms: number; status: number; line: string }> {
+  const target = 'web.whatsapp.com';
+  const started = Date.now();
+  return new Promise(function run(resolve, reject) {
+    const socket = net.connect(port, '127.0.0.1');
+    const timer = setTimeout(function timeout() {
+      socket.destroy();
+      reject(new Error('timeout'));
+    }, timeoutMs);
+    const fail = (err: Error) => {
+      clearTimeout(timer);
+      socket.destroy();
+      reject(err);
+    };
+    socket.once('error', fail);
+    socket.once('connect', function onConnect() {
+      socket.write(`CONNECT ${target}:443 HTTP/1.1\r\nHost: ${target}:443\r\n\r\n`);
+    });
+    socket.once('data', function onData(buf) {
+      const line = buf.toString().split('\r\n')[0];
+      if (!/ 200 /.test(line)) return fail(new Error(`proxy answered: ${line}`));
+      const secure = tls.connect({ socket: socket, servername: target }, function onSecure() {
+        secure.write(`GET / HTTP/1.1\r\nHost: ${target}\r\nUser-Agent: Mozilla/5.0\r\nConnection: close\r\n\r\n`);
+      });
+      let head = '';
+      secure.on('data', function onHttp(d: Buffer) {
+        head += d.toString();
+        const m = head.match(/^HTTP\/\d\.\d (\d{3})[^\r\n]*/);
+        if (m) {
+          clearTimeout(timer);
+          secure.destroy();
+          resolve({ ms: Date.now() - started, status: Number(m[1]), line: m[0] });
+        }
+      });
+      secure.once('error', fail);
+      secure.once('close', function onClose() {
+        if (!head) fail(new Error('closed without response'));
+      });
+    });
+  });
+}
