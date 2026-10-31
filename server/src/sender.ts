@@ -64,28 +64,36 @@ async function runTick(): Promise<void> {
 }
 
 async function processSession(s: SessionRow): Promise<void> {
-  const [{ count }] = await sql<{ count: number }[]>`
-    SELECT count(*)::int AS count FROM messages
-    WHERE session_id = ${s.id} AND direction = 'out' AND sent_at >= date_trunc('day', now())`;
-  if (s.daily_cap > 0 && count >= s.daily_cap) {
-    await sql`UPDATE wa_sessions SET next_send_at = date_trunc('day', now()) + interval '1 day' WHERE id = ${s.id}`;
-    return;
+  const unlimited = s.rate_per_minute <= 0;
+  const burst = unlimited ? 50 : 1;
+  for (let i = 0; i < burst; i += 1) {
+    if (s.daily_cap > 0) {
+      const [{ count }] = await sql<{ count: number }[]>`
+        SELECT count(*)::int AS count FROM messages
+        WHERE session_id = ${s.id} AND direction = 'out' AND sent_at >= date_trunc('day', now())`;
+      if (count >= s.daily_cap) {
+        await sql`UPDATE wa_sessions SET next_send_at = date_trunc('day', now()) + interval '1 day' WHERE id = ${s.id}`;
+        return;
+      }
+    }
+    const rows = await sql<QueuedMessage[]>`
+      UPDATE messages SET status = 'sending'
+      WHERE id = (
+        SELECT m.id FROM messages m LEFT JOIN campaigns c ON c.id = m.campaign_id
+        WHERE m.session_id = ${s.id} AND m.status = 'queued' AND (m.campaign_id IS NULL OR c.status = 'running')
+        ORDER BY (m.campaign_id IS NOT NULL), m.id
+        LIMIT 1 FOR UPDATE OF m SKIP LOCKED
+      )
+      RETURNING id, tenant_id, session_id, campaign_id, contact_id, phone, content, charged`;
+    const msg = rows[0];
+    if (!msg) return;
+    if (!unlimited) {
+      const intervalMs = Math.max(1000, Math.round(60_000 / Math.max(1, s.rate_per_minute)));
+      await sql`UPDATE wa_sessions SET next_send_at = now() + ${intervalMs + ' milliseconds'}::interval WHERE id = ${s.id}`;
+    }
+    await deliver(s.name, msg);
+    if (msg.campaign_id) await finishCampaignIfDone(msg.campaign_id);
   }
-  const rows = await sql<QueuedMessage[]>`
-    UPDATE messages SET status = 'sending'
-    WHERE id = (
-      SELECT m.id FROM messages m LEFT JOIN campaigns c ON c.id = m.campaign_id
-      WHERE m.session_id = ${s.id} AND m.status = 'queued' AND (m.campaign_id IS NULL OR c.status = 'running')
-      ORDER BY (m.campaign_id IS NOT NULL), m.id
-      LIMIT 1 FOR UPDATE OF m SKIP LOCKED
-    )
-    RETURNING id, tenant_id, session_id, campaign_id, contact_id, phone, content, charged`;
-  const msg = rows[0];
-  if (!msg) return;
-  const intervalMs = Math.max(1000, Math.round(60_000 / Math.max(1, s.rate_per_minute)));
-  await sql`UPDATE wa_sessions SET next_send_at = now() + ${intervalMs + ' milliseconds'}::interval WHERE id = ${s.id}`;
-  await deliver(s.name, msg);
-  if (msg.campaign_id) await finishCampaignIfDone(msg.campaign_id);
 }
 
 async function setStatus(id: bigint, status: string, error?: string): Promise<void> {

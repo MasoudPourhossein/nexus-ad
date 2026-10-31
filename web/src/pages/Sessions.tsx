@@ -103,8 +103,8 @@ function EditModal({ session, onClose, onSaved }: { session: any; onClose: () =>
       <div className="space-y-4">
         <Field label={t('label')}><input className="input" value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t('ratePerMinute')}><input className="input" type="number" min={1} max={60} value={rate} onChange={(e) => setRate(e.target.value)} /></Field>
-          <Field label={t('dailyCap')}><input className="input" type="number" min={0} value={cap} onChange={(e) => setCap(e.target.value)} /></Field>
+          <Field label={t('ratePerMinute')} hint={t('unlimitedHint')}><input className="input" type="number" min={0} max={600} value={rate} onChange={(e) => setRate(e.target.value)} /></Field>
+          <Field label={t('dailyCap')} hint={t('unlimitedHint')}><input className="input" type="number" min={0} value={cap} onChange={(e) => setCap(e.target.value)} /></Field>
         </div>
         <button className="btn-primary w-full" disabled={busy || !label} onClick={save}>{isNew ? t('create') : t('save')}</button>
       </div>

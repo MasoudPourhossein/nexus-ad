@@ -51,8 +51,16 @@ export async function campaignRoutes(app: FastifyInstance): Promise<void> {
         message: messageSchema,
         checkExists: z.boolean().default(true),
         start: z.boolean().default(false),
-        ratePerMinute: z.number().int().min(1).max(600).optional(),
+        ratePerMinute: z.number().int().min(0).max(600).optional(),
         dailyCap: z.number().int().min(0).max(10000000).optional(),
+        autoReply: z
+          .object({
+            keywords: z.array(z.string().min(1).max(200)).min(1).default(['1']),
+            match: z.enum(['exact', 'contains', 'any']).default('exact'),
+            reply: messageSchema,
+            tag: z.string().max(50).nullable().default(null),
+          })
+          .optional(),
       }),
       request.body,
     );
@@ -72,6 +80,12 @@ export async function campaignRoutes(app: FastifyInstance): Promise<void> {
       INSERT INTO campaigns (tenant_id, session_id, list_id, name, message, check_exists)
       VALUES (${tid}, ${body.sessionId}, ${body.listId}, ${body.name}, ${sql.json(body.message as any)}, ${body.checkExists})
       RETURNING *`;
+    if (body.autoReply) {
+      const ar = body.autoReply;
+      await sql`
+        INSERT INTO rules (tenant_id, session_id, campaign_id, name, keywords, match, reply, tag, active, priority)
+        VALUES (${tid}, ${body.sessionId}, ${row.id}, ${body.name + ' — auto'}, ${ar.keywords}, ${ar.match}, ${sql.json(ar.reply as any)}, ${ar.tag}, TRUE, 10)`;
+    }
     if (body.start) await startCampaign(row);
     return row;
   });

@@ -43,7 +43,7 @@ const fa: Record<string, string> = {
   latency: 'تأخیر', ok: 'موفق', error: 'خطا', upstream_error: 'خطا در ارتباط با سرور واتساپ', session_limit_reached: 'به سقف حساب‌ها رسیده‌اید',
   validation_error: 'اطلاعات ورودی نامعتبر است', email_taken: 'این ایمیل قبلاً ثبت شده', wrong_password: 'رمز فعلی اشتباه است',
   sendTest: 'ارسال تکی', send: 'ارسال', noSessions: 'ابتدا یک حساب واتساپ متصل کنید', direction: 'جهت', in: 'ورودی', out: 'خروجی',
-  attachFile: 'افزودن فایل', orPasteUrl: 'یا چسباندن لینک', caption: 'کپشن (اختیاری)', record: 'ضبط صدا', stopRecord: 'توقف ضبط', or: 'یا', micUnavailable: 'مرورگر میکروفون را پشتیبانی نمی‌کند', micDenied: 'دسترسی میکروفون رد شد', overrideRate: 'تنظیم سرعت/سقف برای این کمپین',
+  attachFile: 'افزودن فایل', orPasteUrl: 'یا چسباندن لینک', caption: 'کپشن (اختیاری)', record: 'ضبط صدا', stopRecord: 'توقف ضبط', or: 'یا', micUnavailable: 'مرورگر میکروفون را پشتیبانی نمی‌کند', micDenied: 'دسترسی میکروفون رد شد', overrideRate: 'تنظیم سرعت/سقف برای این کمپین', unlimitedHint: '۰ = بدون محدودیت', autoReplyToggle: 'پاسخ خودکار به این کمپین', triggerKeywords: 'کلمه‌ی کلیدی پاسخ', triggerHint: 'مثلاً ۱ یا کاتالوگ — با Enter یا کاما جدا کن', secondMessage: 'پیام دوم (پاسخ)',
 };
 
 const en: Record<string, string> = {
@@ -86,7 +86,7 @@ const en: Record<string, string> = {
   latency: 'Latency', ok: 'OK', error: 'Error', upstream_error: 'WhatsApp server error', session_limit_reached: 'Account limit reached',
   validation_error: 'Invalid input', email_taken: 'Email already registered', wrong_password: 'Current password is wrong',
   sendTest: 'Single send', send: 'Send', noSessions: 'Connect a WhatsApp account first', direction: 'Direction', in: 'In', out: 'Out',
-  attachFile: 'Attach file', orPasteUrl: 'or paste a URL', caption: 'Caption (optional)', record: 'Record', stopRecord: 'Stop', or: 'or', micUnavailable: 'Microphone not supported in this browser', micDenied: 'Microphone access denied', overrideRate: 'Set rate/cap for this campaign',
+  attachFile: 'Attach file', orPasteUrl: 'or paste a URL', caption: 'Caption (optional)', record: 'Record', stopRecord: 'Stop', or: 'or', micUnavailable: 'Microphone not supported in this browser', micDenied: 'Microphone access denied', overrideRate: 'Set rate/cap for this campaign', unlimitedHint: '0 = unlimited', autoReplyToggle: 'Auto-reply for this campaign', triggerKeywords: 'Reply keyword', triggerHint: 'e.g. 1 or catalog — Enter or comma to add', secondMessage: 'Second message (reply)',
 };
 
 const dicts: Record<Lang, Record<string, string>> = { fa, en };

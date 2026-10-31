@@ -21,11 +21,15 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [override, setOverride] = useState(false);
   const [rate, setRate] = useState(20);
   const [cap, setCap] = useState(50000);
+  const [autoReply, setAutoReply] = useState(false);
+  const [arKeywords, setArKeywords] = useState('1');
+  const [arReply, setArReply] = useState<Msg>({ type: 'text', text: '' });
+  const [arTag, setArTag] = useState('');
   const [busy, setBusy] = useState(false);
   async function create() {
     setBusy(true);
     try {
-      await api('/campaigns', { body: { name, sessionId: Number(sessionId), listId: Number(listId), message: cleanMsg(msg), checkExists, start, ...(override ? { ratePerMinute: Number(rate), dailyCap: Number(cap) } : {}) } });
+      await api('/campaigns', { body: { name, sessionId: Number(sessionId), listId: Number(listId), message: cleanMsg(msg), checkExists, start, ...(override ? { ratePerMinute: Number(rate), dailyCap: Number(cap) } : {}), ...(autoReply ? { autoReply: { keywords: arKeywords.split(/[,\n]/).map((k) => k.trim()).filter(Boolean), match: 'exact', reply: cleanMsg(arReply), tag: arTag || null } } : {}) } });
       onCreated();
     } catch (e) {
       toast.err(e);
@@ -53,14 +57,27 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
             </Field>
           </div>
           <MessageEditor value={msg} onChange={setMsg} />
+          <div className="space-y-3 rounded-xl border border-brand-500/20 bg-brand-500/5 p-4">
+            <Toggle checked={autoReply} onChange={setAutoReply} label={t('autoReplyToggle')} />
+            {autoReply && (
+              <div className="space-y-3">
+                <Field label={t('triggerKeywords')} hint={t('triggerHint')}>
+                  <input className="input" value={arKeywords} onChange={(e) => setArKeywords(e.target.value)} placeholder="1" />
+                </Field>
+                <div className="label">{t('secondMessage')}</div>
+                <MessageEditor value={arReply} onChange={setArReply} showVars={false} />
+                <Field label={t('tag')} hint={t('tagHelp')}><input className="input ltr" value={arTag} onChange={(e) => setArTag(e.target.value.replace(/\s/g, '_'))} placeholder="catalog" /></Field>
+              </div>
+            )}
+          </div>
           <div className="space-y-3 rounded-xl bg-slate-50 p-4 dark:bg-white/[0.03]">
             <Toggle checked={checkExists} onChange={setCheckExists} label={t('checkExists')} />
             <Toggle checked={start} onChange={setStart} label={t('startNow')} />
             <Toggle checked={override} onChange={setOverride} label={t('overrideRate')} />
             {override && (
               <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-3 dark:border-white/5">
-                <Field label={t('ratePerMinute')}><input className="input" type="number" min={1} max={600} value={rate} onChange={(e) => setRate(Number(e.target.value))} /></Field>
-                <Field label={t('dailyCap')}><input className="input" type="number" min={0} value={cap} onChange={(e) => setCap(Number(e.target.value))} /></Field>
+                <Field label={t('ratePerMinute')} hint={t('unlimitedHint')}><input className="input" type="number" min={0} max={600} value={rate} onChange={(e) => setRate(Number(e.target.value))} /></Field>
+                <Field label={t('dailyCap')} hint={t('unlimitedHint')}><input className="input" type="number" min={0} value={cap} onChange={(e) => setCap(Number(e.target.value))} /></Field>
               </div>
             )}
           </div>

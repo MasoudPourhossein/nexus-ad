@@ -36,7 +36,7 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(
       z.object({
         label: z.string().min(1).max(100),
-        ratePerMinute: z.number().int().min(1).max(config.maxRatePerMinute).default(10),
+        ratePerMinute: z.number().int().min(0).max(config.maxRatePerMinute).default(10),
         dailyCap: z.number().int().min(0).max(config.maxDailyCap).default(5000),
       }),
       request.body,
@@ -90,7 +90,7 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(
       z.object({
         label: z.string().min(1).max(100).optional(),
-        ratePerMinute: z.number().int().min(1).max(config.maxRatePerMinute).optional(),
+        ratePerMinute: z.number().int().min(0).max(config.maxRatePerMinute).optional(),
         dailyCap: z.number().int().min(0).max(config.maxDailyCap).optional(),
       }),
       request.body,
