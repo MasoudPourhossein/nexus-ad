@@ -7559,8 +7559,8 @@ var require_utils = __commonJS({
         return [callback];
       }
       let promiseResolve, promiseReject;
-      const promise2 = new Promise((resolve, reject) => {
-        promiseResolve = resolve;
+      const promise2 = new Promise((resolve2, reject) => {
+        promiseResolve = resolve2;
         promiseReject = reject;
       });
       return [
@@ -8959,7 +8959,7 @@ var require_queue = __commonJS({
             release();
           }
         },
-        running,
+        running: running2,
         resume,
         idle,
         length,
@@ -8972,7 +8972,7 @@ var require_queue = __commonJS({
         abort
       };
       return self;
-      function running() {
+      function running2() {
         return _running;
       }
       function pause() {
@@ -9157,41 +9157,41 @@ var require_queue = __commonJS({
       queue.drained = drained;
       return queue;
       function push(value2) {
-        var p2 = new Promise(function(resolve, reject) {
+        var p2 = new Promise(function(resolve2, reject) {
           pushCb(value2, function(err, result) {
             if (err) {
               reject(err);
               return;
             }
-            resolve(result);
+            resolve2(result);
           });
         });
         p2.catch(noop5);
         return p2;
       }
       function unshift(value2) {
-        var p2 = new Promise(function(resolve, reject) {
+        var p2 = new Promise(function(resolve2, reject) {
           unshiftCb(value2, function(err, result) {
             if (err) {
               reject(err);
               return;
             }
-            resolve(result);
+            resolve2(result);
           });
         });
         p2.catch(noop5);
         return p2;
       }
       function drained() {
-        var p2 = new Promise(function(resolve) {
+        var p2 = new Promise(function(resolve2) {
           process.nextTick(function() {
             if (queue.idle()) {
-              resolve();
+              resolve2();
             } else {
               var previousDrain = queue.drain;
               queue.drain = function() {
                 if (typeof previousDrain === "function") previousDrain();
-                resolve();
+                resolve2();
                 queue.drain = previousDrain;
               };
             }
@@ -9765,9 +9765,9 @@ var require_jwt = __commonJS({
         }
         const reply = this;
         if (next2 === void 0) {
-          return new Promise(function(resolve, reject) {
+          return new Promise(function(resolve2, reject) {
             reply[jwtSignName](payload, options2, function(err, val) {
-              err ? reject(err) : resolve(val);
+              err ? reject(err) : resolve2(val);
             });
           });
         }
@@ -9821,9 +9821,9 @@ var require_jwt = __commonJS({
         };
         const request = this;
         if (next2 === void 0) {
-          return new Promise(function(resolve, reject) {
+          return new Promise(function(resolve2, reject) {
             request[jwtDecodeName](options2, function(err, val) {
-              err ? reject(err) : resolve(val);
+              err ? reject(err) : resolve2(val);
             });
           });
         }
@@ -9838,9 +9838,9 @@ var require_jwt = __commonJS({
       function requestVerify(options2, next2) {
         const request = this;
         if (next2 === void 0) {
-          return new Promise(function(resolve, reject) {
+          return new Promise(function(resolve2, reject) {
             request[jwtVerifyName](options2, function(err, val) {
-              err ? reject(err) : resolve(val);
+              err ? reject(err) : resolve2(val);
             });
           });
         }
@@ -12335,14 +12335,14 @@ var require_stream_consumer = __commonJS({
   "node_modules/@fastify/multipart/lib/stream-consumer.js"(exports, module) {
     "use strict";
     module.exports = function streamToNull(stream) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         stream.on("data", () => {
         });
         stream.on("close", () => {
-          resolve();
+          resolve2();
         });
         stream.on("end", () => {
-          resolve();
+          resolve2();
         });
         stream.on("error", (error63) => {
           reject(error63);
@@ -12805,10 +12805,10 @@ var require_multipart2 = __commonJS({
           }
         };
         const parts2 = () => {
-          return new Promise((resolve, reject) => {
+          return new Promise((resolve2, reject) => {
             handle((val) => {
               if (val instanceof Error) return reject(val);
-              resolve(val);
+              resolve2(val);
             });
           });
         };
@@ -17605,7 +17605,7 @@ var require_send = __commonJS({
     var extname = path.extname;
     var join6 = path.join;
     var normalize = path.normalize;
-    var resolve = path.resolve;
+    var resolve2 = path.resolve;
     var sep = path.sep;
     var Readable2 = stream.Readable;
     var BYTES_RANGE_REGEXP = /^ *bytes=/;
@@ -17659,7 +17659,7 @@ var require_send = __commonJS({
         }
         onFile = options.onFile;
       }
-      const root = options.root ? resolve(options.root) : null;
+      const root = options.root ? resolve2(options.root) : null;
       const highWaterMark = Number.isSafeInteger(options.highWaterMark) && options.highWaterMark > 0 ? options.highWaterMark : null;
       return {
         acceptRanges,
@@ -17705,7 +17705,7 @@ var require_send = __commonJS({
           return { statusCode: 403 };
         }
         parts2 = normalize(path2).split(sep);
-        path2 = resolve(path2);
+        path2 = resolve2(path2);
       }
       return { path: path2, parts: parts2 };
     }
@@ -17801,9 +17801,9 @@ var require_send = __commonJS({
       );
     }
     function tryStat(path2) {
-      return new Promise((resolve2) => {
+      return new Promise((resolve3) => {
         fs3.stat(path2, function onstat(error63, stat) {
-          resolve2({ error: error63, stat });
+          resolve3({ error: error63, stat });
         });
       });
     }
@@ -19739,8 +19739,8 @@ var require_create_promise = __commonJS({
         reject: null,
         promise: null
       };
-      obj.promise = new Promise((resolve, reject) => {
-        obj.resolve = resolve;
+      obj.promise = new Promise((resolve2, reject) => {
+        obj.resolve = resolve2;
         obj.reject = reject;
       });
       return obj;
@@ -20013,11 +20013,11 @@ var require_thenify = __commonJS({
         return;
       }
       debug("thenify");
-      return (resolve, reject) => {
+      return (resolve2, reject) => {
         const p2 = this._loadRegistered();
         return p2.then(() => {
           this[kThenifyDoNotWrap] = true;
-          return resolve(this._server);
+          return resolve2(this._server);
         }, reject);
       };
     }
@@ -20155,12 +20155,12 @@ var require_avvio = __commonJS({
     inherits(Boot, EE);
     if ("asyncDispose" in Symbol) {
       Boot.prototype[Symbol.asyncDispose] = function() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve2, reject) => {
           this.close((err) => {
             if (err) {
               return reject(err);
             }
-            resolve();
+            resolve2();
           });
         });
       };
@@ -20307,12 +20307,12 @@ var require_avvio = __commonJS({
           throw new AVV_ERR_CALLBACK_NOT_FN("close", typeof func);
         }
       } else {
-        promise2 = new Promise(function(resolve, reject) {
+        promise2 = new Promise(function(resolve2, reject) {
           func = function(err) {
             if (err) {
               return reject(err);
             }
-            resolve();
+            resolve2();
           };
         });
       }
@@ -20332,7 +20332,7 @@ var require_avvio = __commonJS({
         queueMicrotask(this.start.bind(this));
         return;
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         this._readyQ.push(readyPromiseCB);
         this.start();
         const relativeContext = this._current[0].server;
@@ -20340,7 +20340,7 @@ var require_avvio = __commonJS({
           if (err) {
             reject(err);
           } else {
-            resolve(relativeContext);
+            resolve2(relativeContext);
           }
           process.nextTick(done2);
         }
@@ -21735,8 +21735,8 @@ var require_promise = __commonJS({
     var { kTestInternals } = require_symbols2();
     function withResolvers() {
       let res, rej;
-      const promise2 = new Promise((resolve, reject) => {
-        res = resolve;
+      const promise2 = new Promise((resolve2, reject) => {
+        res = resolve2;
         rej = reject;
       });
       return { promise: promise2, resolve: res, reject: rej };
@@ -21835,15 +21835,15 @@ var require_server = __commonJS({
         if (cb === void 0) {
           const listening = listenPromise.call(this, server, listenOptions);
           return listening.then((address) => {
-            const { promise: promise2, resolve } = PonyPromise.withResolvers();
+            const { promise: promise2, resolve: resolve2 } = PonyPromise.withResolvers();
             if (host === "localhost") {
               multipleBindings.call(this, server, httpHandler, options, listenOptions, () => {
                 this[kState].listening = true;
-                resolve(address);
+                resolve2(address);
                 onListenHookRunner(this);
               });
             } else {
-              resolve(address);
+              resolve2(address);
               onListenHookRunner(this);
             }
             return promise2;
@@ -21970,7 +21970,7 @@ var require_server = __commonJS({
       }
       return this.ready().then(() => {
         if (this[kState].aborted) return;
-        const { promise: promise2, resolve, reject } = PonyPromise.withResolvers();
+        const { promise: promise2, resolve: resolve2, reject } = PonyPromise.withResolvers();
         const errEventHandler = (err) => {
           cleanup();
           this[kState].listening = false;
@@ -21979,7 +21979,7 @@ var require_server = __commonJS({
         const listeningEventHandler = () => {
           cleanup();
           this[kState].listening = true;
-          resolve(logServerAddress.call(
+          resolve2(logServerAddress.call(
             this,
             server,
             listenOptions.listenTextResolver || defaultResolveServerListeningText
@@ -35448,7 +35448,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve.call(this, root, ref);
+      let _sch = resolve2.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
@@ -35475,7 +35475,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve(root, ref) {
+    function resolve2(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -36339,7 +36339,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -36730,7 +36730,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve2,
       resolveComponent,
       equal,
       serialize,
@@ -42167,7 +42167,7 @@ var require_fast_uri2 = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -42594,7 +42594,7 @@ var require_fast_uri2 = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve2,
       resolveComponent,
       equal,
       serialize,
@@ -54593,9 +54593,9 @@ var require_light_my_request = __commonJS({
         const res = new Response(req, callback);
         return makeRequest(dispatchFunc, server, req, res);
       } else {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve2, reject) => {
           const req = new RequestConstructor(options);
-          const res = new Response(req, resolve, reject);
+          const res = new Response(req, resolve2, reject);
           makeRequest(dispatchFunc, server, req, res);
         });
       }
@@ -55634,8 +55634,8 @@ function Types(options = {}) {
   const custom2 = Object.values(options.types || {}), named = custom2.filter((x) => [x.to].concat(x.from || []).some((y) => typeof y === "string")), oids = {};
   register(custom2.filter((x) => !named.includes(x)));
   const bases = {};
-  return { parser, decoder, serializer, load, infer, resolve, named: named.length > 0, parsers, serializers };
-  function resolve(type) {
+  return { parser, decoder, serializer, load, infer, resolve: resolve2, named: named.length > 0, parsers, serializers };
+  function resolve2(type) {
     return typeof type === "string" ? oids[type] || 0 : type;
   }
   function decoder(oid, parse8) {
@@ -55687,7 +55687,7 @@ function Types(options = {}) {
     if (missing.length) {
       throw Errors.generic("TYPE_NOT_FOUND", missing.length > 1 ? "The types " + missing.join(", ") + " do not exist" : "The type " + missing[0] + " does not exist");
     }
-    register(named.map((x) => ({ ...x, to: resolve(x.to), from: [].concat(x.from || []).map(resolve) })));
+    register(named.map((x) => ({ ...x, to: resolve2(x.to), from: [].concat(x.from || []).map(resolve2) })));
   }
   function fetched(run2) {
     return run2(
@@ -56394,12 +56394,12 @@ var init_query = __esm({
     CLOSE = {};
     Query = class _Query extends Promise {
       constructor(strings, args, handler, options = {}) {
-        let resolve, reject;
+        let resolve2, reject;
         super((a, b) => {
-          resolve = a;
+          resolve2 = a;
           reject = b;
         });
-        this.fulfil = resolve;
+        this.fulfil = resolve2;
         this.fail = reject;
         this[isQuery] = true;
         this.tagged = Array.isArray(strings.raw);
@@ -56510,12 +56510,12 @@ var init_query = __esm({
               if (this.executed && !this.active)
                 return { done: true };
               prev && prev();
-              const promise2 = new Promise((resolve, reject) => {
+              const promise2 = new Promise((resolve2, reject) => {
                 this.cursorFn = (value2) => {
-                  resolve({ value: value2, done: false });
+                  resolve2({ value: value2, done: false });
                   return new Promise((r) => prev = r);
                 };
-                this.resolve = (x) => (this.active = false, this.settled = true, this.trace && traced(this, null, x), resolve({ done: true }));
+                this.resolve = (x) => (this.active = false, this.settled = true, this.trace && traced(this, null, x), resolve2({ done: true }));
                 this.reject = (x) => (this.active = false, this.settled = true, this.trace && traced(this, x), reject(x));
               });
               this.execute();
@@ -56725,7 +56725,7 @@ function run(w, portal, name, values2, rows, flushing) {
 }
 function Frames(onframe, shared = false, onerror = null) {
   const chunks = [], owned = /* @__PURE__ */ new WeakSet();
-  let data = null, owning = false, at = 0, part2 = null, filled = 0, paused = false, running = false, broken = false;
+  let data = null, owning = false, at = 0, part2 = null, filled = 0, paused = false, running2 = false, broken = false;
   return {
     push(x) {
       if (broken)
@@ -56765,9 +56765,9 @@ function Frames(onframe, shared = false, onerror = null) {
       owned.has(chunks[i]) || (chunks[i] = own4(chunks[i]));
   }
   function run2() {
-    if (running)
+    if (running2)
       return;
-    running = true;
+    running2 = true;
     try {
       while (true) {
         if (broken || paused || !(data && at < data.length || next()))
@@ -56775,7 +56775,7 @@ function Frames(onframe, shared = false, onerror = null) {
         part2 ? fill() : frame();
       }
     } finally {
-      running = false;
+      running2 = false;
     }
   }
   function invalid(length) {
@@ -56984,7 +56984,7 @@ function secureOptions(ssl) {
   return ssl === "require" || ssl === "allow" || ssl === "prefer" ? workers ? {} : { rejectUnauthorized: false } : typeof ssl === "object" ? ssl : {};
 }
 function connect(options, host, port, track) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve2, reject) => {
     const tlsNow = direct(options), plain3 = !secured(options), reads = (plain3 || tlsNow) && onreadSafe && options.onread !== false && {
       buffer: Buffer.allocUnsafe(65536),
       callback: (n, b) => socket.ondata(b.subarray(0, n))
@@ -57003,7 +57003,7 @@ function connect(options, host, port, track) {
     socket.once(tlsNow ? "secureConnect" : "connect", () => {
       socket.off("error", reject);
       socket.setNoDelay(true);
-      resolve(socket);
+      resolve2(socket);
     });
   });
 }
@@ -57079,7 +57079,7 @@ function wrap(socket, host) {
     x.onclose(failure2);
   }
   function upgrade(options = {}) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       unlisten();
       const secure = tls.connect({
         socket,
@@ -57094,7 +57094,7 @@ function wrap(socket, host) {
         secure.off("error", fail2);
         socket = secure;
         listen();
-        resolve(x);
+        resolve2(x);
       }
       secure.once("secureConnect", ready);
       secure.once("error", fail2);
@@ -57165,7 +57165,7 @@ function fits(want, { readOnly, standby }) {
 }
 function attempt(options, host, port, signal) {
   const { setTimeout: setTimeout2, clearTimeout: clearTimeout2 } = options.timers, fail2 = (code) => Errors.connection(code, options, host, port);
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve2, reject) => {
     const timer3 = options.connect_timeout && setTimeout2(() => done2(true, fail2("CONNECT_TIMEOUT")), options.connect_timeout * 1e3);
     let socket = null, raw = null, settled = false;
     session().then((x) => done2(false, null, x), (e) => done2(true, e));
@@ -57182,7 +57182,7 @@ function attempt(options, host, port, signal) {
       }
       ready.socket.onclose = () => {
       };
-      resolve(ready);
+      resolve2(ready);
     }
     async function session() {
       socket = await Socket(options, host, port, (x) => raw = x);
@@ -57196,7 +57196,7 @@ function attempt(options, host, port, signal) {
       return startup2(user, options.database || user);
     }
     function startup2(user, database) {
-      return new Promise((resolve2, reject2) => {
+      return new Promise((resolve3, reject2) => {
         const stored = () => pgpass(options.passfile, options.path ? "localhost" : host, port, database, user) || "", auth = Auth({ user, pass: options.pass || stored, binding: options.channel_binding, socket }), parameters = {}, backend = { pid: null, secret: null }, frames = Frames(frame, false, (error63) => (reject2(error63), socket.destroy())), rows = [];
         let probing = false, status = null, authing = Promise.resolve();
         socket.ondata = (x) => frames.push(x);
@@ -57236,7 +57236,7 @@ function attempt(options, host, port, signal) {
           socket.ondata = () => {
           };
           socket.pause();
-          resolve2({
+          resolve3({
             socket,
             rest,
             backend,
@@ -57276,8 +57276,8 @@ async function cancel2(options, host, port, { pid, secret }) {
     socket.destroy();
     throw error63;
   }
-  return new Promise((resolve) => {
-    socket.onclose = () => resolve();
+  return new Promise((resolve2) => {
+    socket.onclose = () => resolve2();
     socket.end(Cancel(pid, secret));
   });
 }
@@ -57467,7 +57467,7 @@ var init_startup = __esm({
 // node_modules/postgres/src/connection.js
 import Stream from "stream";
 function Connection(ready, options, events) {
-  const { socket } = ready, timers = options.timers, defer = timers.nextTick || process.nextTick, { transform: transform3 } = options, sent = [], pending = [], running = /* @__PURE__ */ new Set(), open3 = /* @__PURE__ */ new Set(), prepared = /* @__PURE__ */ new Map(), out = Writer(), frames = Frames(frame, socket.shared, (error63) => (connection2.fatal = error63, socket.destroy()));
+  const { socket } = ready, timers = options.timers, defer = timers.nextTick || process.nextTick, { transform: transform3 } = options, sent = [], pending = [], running2 = /* @__PURE__ */ new Set(), open3 = /* @__PURE__ */ new Set(), prepared = /* @__PURE__ */ new Map(), out = Writer(), frames = Frames(frame, socket.shared, (error63) => (connection2.fatal = error63, socket.destroy()));
   let blocker = null, rolling = false, fence = null, drained = null, status = ready.status, flushing = false, closed = null, closing = null, portals = 0, traced3 = 0, epoch2 = 0, headSince = 0, notables = 0;
   const connection2 = {
     id: ids++,
@@ -57791,13 +57791,13 @@ function Connection(ready, options, events) {
     return !!b && a.length === params.length && params.every((x, i) => x === a[i]) && b.length === columns2.length && columns2.every((x, i) => x.type === b[i].type);
   }
   function describe4(statement2, oids) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const x = Exchange("describe", null, connection2.lease, (x2) => {
         parse2(out, "", statement2.text, oids);
         describe(out, "S", "");
         sync2(x2);
       });
-      x.resolve = resolve;
+      x.resolve = resolve2;
       x.reject = reject;
       queue(x);
     });
@@ -57821,7 +57821,7 @@ function Connection(ready, options, events) {
     }));
   }
   function cancel3(query2) {
-    if (running.has(query2) || sent[0] && sent[0].query === query2 && sent[0].awaiting)
+    if (running2.has(query2) || sent[0] && sent[0].query === query2 && sent[0].awaiting)
       return query2.aborted = Errors.generic("57014", "canceling statement due to user request"), Promise.resolve();
     const i = pending.findIndex((x2) => x2.query === query2);
     if (i !== -1) {
@@ -57835,7 +57835,7 @@ function Connection(ready, options, events) {
     const x = sent.find((x2) => x2.query === query2);
     if (!x)
       return Promise.resolve();
-    return x === sent[0] && query2.active ? ready.cancel() : new Promise((resolve, reject) => x.cancel = { resolve, reject });
+    return x === sent[0] && query2.active ? ready.cancel() : new Promise((resolve2, reject) => x.cancel = { resolve: resolve2, reject });
   }
   function close2() {
     closing || (closing = new Promise((r) => {
@@ -57872,8 +57872,8 @@ function Connection(ready, options, events) {
       x.own ? settle2(x) : x === head && x.error && x.error.severity === "FATAL" ? settleError(x, x.error) : settleError(x, closed);
     });
     pending.splice(0).forEach((x) => x.own ? settle2(x) : settleError(x, closed));
-    running.forEach((query2) => query2.settled || query2.reject(decorate(query2, closed)));
-    running.clear();
+    running2.forEach((query2) => query2.settled || query2.reject(decorate(query2, closed)));
+    running2.clear();
     open3.clear();
     connection2.onended && connection2.onended();
     events.onclose(connection2, closed);
@@ -58141,14 +58141,14 @@ function Connection(ready, options, events) {
   }
   function suspended(x) {
     const cursor = x.origin || x, { query: query2 } = x;
-    running.add(query2);
+    running2.add(query2);
     new Promise((r) => r(query2.cursorFn(x.result))).then((next) => {
-      running.delete(query2);
+      running2.delete(query2);
       if (query2.settled)
         return unfence(cursor);
       queue(step(cursor, next === CLOSE || !!query2.aborted, query2.aborted || null));
     }, (error63) => {
-      running.delete(query2);
+      running2.delete(query2);
       if (query2.settled)
         return unfence(cursor);
       queue(step(cursor, true, error63));
@@ -58707,11 +58707,11 @@ function Pool(options, types2) {
     hold(c2);
     typesLoading = true;
     c2.loading = true;
-    types2.load((text3) => new Promise((resolve, reject2) => {
+    types2.load((text3) => new Promise((resolve2, reject2) => {
       const q = new Query([text3], [], Object.assign(() => {
       }, { options }), { simple: true });
       q.executed = true;
-      q.then(resolve, reject2);
+      q.then(resolve2, reject2);
       c2.simple(q, text3);
     })).then(
       () => typesLoaded = true,
@@ -58827,8 +58827,8 @@ function Pool(options, types2) {
     const missing = retype();
     if (missing)
       throw missing;
-    return new Promise((resolve, reject2) => {
-      waiting.push(wait({ lease: true, kind, resolve, reject: reject2, queued: listened(channels.pool) ? now2() : 0 }));
+    return new Promise((resolve2, reject2) => {
+      waiting.push(wait({ lease: true, kind, resolve: resolve2, reject: reject2, queued: listened(channels.pool) ? now2() : 0 }));
       drain();
     });
   }
@@ -58852,9 +58852,9 @@ function Pool(options, types2) {
           return q.reject(queryError(c2.closed, q, options.debug));
         if (released)
           return q.reject(queryError(ended(x), q, options.debug));
-        chain = chain.then(() => new Promise((resolve) => {
-          q.onwrite = resolve;
-          q.then(resolve, resolve);
+        chain = chain.then(() => new Promise((resolve2) => {
+          q.onwrite = resolve2;
+          q.then(resolve2, resolve2);
           query2(q, x);
         }));
       },
@@ -58894,8 +58894,8 @@ function Pool(options, types2) {
   function end({ timeout = null } = {}) {
     if (ending2)
       return ending2;
-    ending2 = new Promise((resolve) => {
-      pool.ended = resolve;
+    ending2 = new Promise((resolve2) => {
+      pool.ended = resolve2;
       timeout !== null && (endTimer = setTimeout2(destroy, timeout * 1e3));
       retryTimer && (clearTimeout2(retryTimer), retryTimer = null);
       Promise.resolve().then(finishing);
@@ -58914,9 +58914,9 @@ function Pool(options, types2) {
     if (connections.size === 0 && (opening === 0 || signal.aborted) && waiting.length === 0) {
       endTimer && clearTimeout2(endTimer);
       retryTimer && clearTimeout2(retryTimer);
-      const resolve = pool.ended;
+      const resolve2 = pool.ended;
       pool.ended = null;
-      resolve();
+      resolve2();
     }
   }
   function destroy() {
@@ -59396,7 +59396,7 @@ var init_subscribe = __esm({
 // node_modules/postgres/src/large.js
 import Stream2 from "stream";
 function largeObject(sql2, oid, mode = 131072 | 262144) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise(async (resolve2, reject) => {
     await sql2.begin(async (sql3) => {
       let finish2;
       !oid && ([{ oid }] = await sql3`select lo_creat(-1) as oid`);
@@ -59422,7 +59422,7 @@ function largeObject(sql2, oid, mode = 131072 | 262144) {
           ) seek
         `
       };
-      resolve(lo);
+      resolve2(lo);
       return new Promise(async (r) => finish2 = r);
       async function readable({
         highWaterMark = 2048 * 8,
@@ -59615,9 +59615,9 @@ function Postgres(a, b) {
       };
       name && await control(lease, "savepoint " + identifier(name));
       try {
-        result = await new Promise((resolve, reject) => {
+        result = await new Promise((resolve2, reject) => {
           const x = fn2(scoped);
-          Promise.resolve(Array.isArray(x) ? Promise.all(x) : x).then(resolve, reject);
+          Promise.resolve(Array.isArray(x) ? Promise.all(x) : x).then(resolve2, reject);
         });
         if (uncaught && !stopped())
           throw uncaught;
@@ -62134,13 +62134,13 @@ function genSalt(rounds, seed_length, callback) {
       throw Error("Illegal callback: " + typeof callback);
     _async(callback);
   } else
-    return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve2, reject) {
       _async(function(err, res) {
         if (err) {
           reject(err);
           return;
         }
-        resolve(res);
+        resolve2(res);
       });
     });
 }
@@ -62172,13 +62172,13 @@ function hash(password2, salt, callback, progressCallback) {
       throw Error("Illegal callback: " + typeof callback);
     _async(callback);
   } else
-    return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve2, reject) {
       _async(function(err, res) {
         if (err) {
           reject(err);
           return;
         }
-        resolve(res);
+        resolve2(res);
       });
     });
 }
@@ -62230,13 +62230,13 @@ function compare(password2, hashValue, callback, progressCallback) {
       throw Error("Illegal callback: " + typeof callback);
     _async(callback);
   } else
-    return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve2, reject) {
       _async(function(err, res) {
         if (err) {
           reject(err);
           return;
         }
-        resolve(res);
+        resolve2(res);
       });
     });
 }
@@ -64149,17 +64149,17 @@ async function stopXray() {
   const proc = child;
   child = null;
   if (!proc || proc.exitCode !== null) return;
-  await new Promise(function wait(resolve) {
+  await new Promise(function wait(resolve2) {
     proc.once("exit", function done2() {
-      resolve();
+      resolve2();
     });
     proc.kill("SIGTERM");
-    setTimeout(resolve, 2e3);
+    setTimeout(resolve2, 2e3);
   });
 }
 function testThroughProxy(target = "web.whatsapp.com", timeoutMs = 1e4, port = XRAY_HTTP_PORT) {
   const started = Date.now();
-  return new Promise(function run2(resolve, reject) {
+  return new Promise(function run2(resolve2, reject) {
     const socket = net2.connect(port, "127.0.0.1");
     const timer3 = setTimeout(function timeout() {
       socket.destroy();
@@ -64186,7 +64186,7 @@ Host: ${target}:443\r
       const secure = tls2.connect({ socket, servername: target }, function onSecure() {
         clearTimeout(timer3);
         secure.destroy();
-        resolve(Date.now() - started);
+        resolve2(Date.now() - started);
       });
       secure.once("error", function onTlsError(err) {
         clearTimeout(timer3);
@@ -64196,12 +64196,12 @@ Host: ${target}:443\r
   });
 }
 function freePort() {
-  return new Promise(function find(resolve, reject) {
+  return new Promise(function find(resolve2, reject) {
     const srv = net2.createServer();
     srv.listen(0, "127.0.0.1", function listening() {
       const port = srv.address().port;
       srv.close(function closed() {
-        resolve(port);
+        resolve2(port);
       });
     });
     srv.on("error", reject);
@@ -64209,7 +64209,7 @@ function freePort() {
 }
 function probeHttps(target, port = XRAY_HTTP_PORT, timeoutMs = 15e3) {
   const started = Date.now();
-  return new Promise(function run2(resolve, reject) {
+  return new Promise(function run2(resolve2, reject) {
     const socket = net2.connect(port, "127.0.0.1");
     let status = 0;
     let line = "";
@@ -64221,7 +64221,7 @@ function probeHttps(target, port = XRAY_HTTP_PORT, timeoutMs = 15e3) {
       clearTimeout(timer3);
       socket.destroy();
       if (!status) return reject(new Error(bytes ? "no http status" : "timeout"));
-      resolve({ ms: Date.now() - started, status, line, bytes, complete });
+      resolve2({ ms: Date.now() - started, status, line, bytes, complete });
     };
     const timer3 = setTimeout(function timeout() {
       finish2(false);
@@ -69689,7 +69689,7 @@ var recursive = /* @__PURE__ */ new WeakMap();
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve) {
+function isRecursive(inst, stack, resolve2) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -69699,7 +69699,7 @@ function isRecursive(inst, stack, resolve) {
   let result = NONE;
   const check2 = (child2) => {
     if (result !== PROVEN && child2?._zod) {
-      const answer = isRecursive(child2, stack, resolve);
+      const answer = isRecursive(child2, stack, resolve2);
       if (answer > result)
         result = answer;
     }
@@ -69710,7 +69710,7 @@ function isRecursive(inst, stack, resolve) {
       const desc = Object.getOwnPropertyDescriptor(sh, key2);
       if (spread && !desc.enumerable)
         continue;
-      const child2 = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve) : NONE;
+      const child2 = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve2) : NONE;
       if (child2 > answer)
         answer = child2;
     }
@@ -69774,7 +69774,7 @@ function isRecursive(inst, stack, resolve) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -85152,6 +85152,7 @@ async function campaignRoutes(app) {
         listId: external_exports.number().int(),
         message: messageSchema,
         checkExists: external_exports.boolean().default(true),
+        onlyWhatsApp: external_exports.boolean().default(false),
         start: external_exports.boolean().default(false),
         ratePerMinute: external_exports.number().int().min(0).max(600).optional(),
         dailyCap: external_exports.number().int().min(0).max(1e7).optional(),
@@ -85177,8 +85178,8 @@ async function campaignRoutes(app) {
     const list2 = await sql`SELECT 1 FROM contact_lists WHERE id = ${body.listId} AND tenant_id = ${tid}`;
     if (!list2.length) throw new HttpError(404, "list_not_found");
     const [row] = await sql`
-      INSERT INTO campaigns (tenant_id, session_id, list_id, name, message, check_exists)
-      VALUES (${tid}, ${body.sessionId}, ${body.listId}, ${body.name}, ${sql.json(body.message)}, ${body.checkExists})
+      INSERT INTO campaigns (tenant_id, session_id, list_id, name, message, check_exists, only_whatsapp)
+      VALUES (${tid}, ${body.sessionId}, ${body.listId}, ${body.name}, ${sql.json(body.message)}, ${body.checkExists}, ${body.onlyWhatsApp})
       RETURNING *`;
     if (body.autoReply) {
       const ar = body.autoReply;
@@ -85348,6 +85349,7 @@ async function startCampaign(c2) {
     SELECT ${c2.tenant_id}, ${c2.session_id}, ${c2.id}, ct.id, ct.phone, ${sql.json(c2.message)}, 'queued'
     FROM contacts ct
     WHERE ct.list_id = ${c2.list_id}
+      AND (${c2.only_whatsapp} = FALSE OR ct.has_wa IS TRUE)
       AND NOT EXISTS (SELECT 1 FROM opt_outs o WHERE o.tenant_id = ${c2.tenant_id} AND o.phone = ct.phone)
     RETURNING id`;
   await sql`UPDATE campaigns SET status = 'running', started_at = now() WHERE id = ${c2.id}`;
@@ -85363,6 +85365,82 @@ import { randomUUID } from "node:crypto";
 import { join as join3 } from "node:path";
 import { Readable } from "node:stream";
 init_csv_import();
+
+// src/verify.ts
+init_config();
+init_db();
+init_phone();
+var CONCURRENCY = Math.max(1, Number(process.env.NEXUS_WA_CHECK_CONCURRENCY ?? 8));
+var CACHE_DAYS = Number(process.env.NEXUS_WA_CACHE_DAYS ?? 30);
+var CHUNK = 500;
+var running = /* @__PURE__ */ new Set();
+async function resolve(sessionName, phone) {
+  const cached2 = await sql`
+    SELECT exists, chat_id FROM wa_cache WHERE phone = ${phone} AND checked_at > now() - ${CACHE_DAYS + " days"}::interval`;
+  if (cached2[0]) return { exists: cached2[0].exists, chatId: cached2[0].chat_id };
+  const res = await waha.checkExists(sessionName, phone);
+  const chatId = res.numberExists ? res.chatId ?? chatIdFor(phone) : null;
+  await sql`
+    INSERT INTO wa_cache (phone, exists, chat_id, checked_at) VALUES (${phone}, ${res.numberExists}, ${chatId}, now())
+    ON CONFLICT (phone) DO UPDATE SET exists = EXCLUDED.exists, chat_id = EXCLUDED.chat_id, checked_at = now()`;
+  return { exists: res.numberExists, chatId };
+}
+async function runJob(jobId, listId, sessionName) {
+  try {
+    const [{ total }] = await sql`SELECT count(*)::int AS total FROM contacts WHERE list_id = ${listId} AND has_wa IS NULL`;
+    const [{ already }] = await sql`SELECT count(*)::int AS already FROM contacts WHERE list_id = ${listId} AND has_wa = TRUE`;
+    await sql`UPDATE verify_jobs SET total = ${total}, found = ${already} WHERE id = ${jobId}`;
+    let checked = 0;
+    let found = already;
+    let lastReport = Date.now();
+    for (; ; ) {
+      const job = await sql`SELECT status FROM verify_jobs WHERE id = ${jobId}`;
+      if (!job[0] || job[0].status === "cancelled") return;
+      const rows = await sql`
+        SELECT id, phone FROM contacts WHERE list_id = ${listId} AND has_wa IS NULL ORDER BY id LIMIT ${CHUNK}`;
+      if (!rows.length) break;
+      let i = 0;
+      async function worker() {
+        for (; ; ) {
+          const row = rows[i++];
+          if (!row) return;
+          try {
+            const r = await resolve(sessionName, row.phone);
+            await sql`UPDATE contacts SET has_wa = ${r.exists}, chat_id = ${r.chatId}, wa_checked_at = now() WHERE id = ${row.id}::bigint`;
+            checked += 1;
+            if (r.exists) found += 1;
+          } catch {
+            checked += 1;
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+      if (Date.now() - lastReport > 1e3) {
+        lastReport = Date.now();
+        await sql`UPDATE verify_jobs SET checked = ${checked}, found = ${found}, updated_at = now() WHERE id = ${jobId}`;
+      }
+    }
+    await sql`UPDATE verify_jobs SET status = 'done', checked = ${checked}, found = ${found}, updated_at = now() WHERE id = ${jobId}`;
+  } catch (err) {
+    await sql`UPDATE verify_jobs SET status = 'failed', error = ${String(err?.message ?? err).slice(0, 300)}, updated_at = now() WHERE id = ${jobId}`.catch(function ignore2() {
+    });
+  }
+}
+async function startVerifyJob(tenantId, listId, sessionId, sessionName) {
+  const [job] = await sql`
+    INSERT INTO verify_jobs (tenant_id, list_id, session_id) VALUES (${tenantId}, ${listId}, ${sessionId}) RETURNING id`;
+  if (running.has(listId)) {
+    await sql`UPDATE verify_jobs SET status = 'done', error = 'another verification is already running for this list' WHERE id = ${job.id}`;
+    return String(job.id);
+  }
+  running.add(listId);
+  void runJob(job.id, listId, sessionName).finally(function done2() {
+    running.delete(listId);
+  });
+  return String(job.id);
+}
+
+// src/routes/contacts.ts
 init_db();
 init_phone();
 async function ownList(tenantId, id) {
@@ -85399,10 +85477,39 @@ async function contactRoutes(app) {
     await mkdir2(dir, { recursive: true });
     const path = join3(dir, `${request.tenant.id}_${randomUUID()}.csv`);
     await pipeline(file2.file, createWriteStream(path));
+    const verify = String(request.query?.verify ?? "") === "1";
+    const sessionId = Number(request.query?.sessionId ?? 0) || null;
+    let sessionName = null;
+    if (verify && sessionId) {
+      const srow = await ownSession(request.tenant.id, sessionId);
+      sessionName = srow.name;
+    }
     const [job] = await sql`
       INSERT INTO import_jobs (tenant_id, list_id) VALUES (${request.tenant.id}, ${list2.id}) RETURNING id`;
-    void runImportJob(job.id, path, request.tenant.id, list2.id);
+    void runImportJob(job.id, path, request.tenant.id, list2.id).then(async function afterImport() {
+      if (sessionName) await startVerifyJob(request.tenant.id, list2.id, sessionId, sessionName).catch(function ignore2() {
+      });
+    });
     return { jobId: String(job.id) };
+  });
+  app.post("/lists/:id/verify", async function verifyList(request) {
+    const list2 = await ownList(request.tenant.id, idParam(request.params));
+    const body = parse6(external_exports.object({ sessionId: external_exports.number().int() }), request.body);
+    const session = await ownSession(request.tenant.id, body.sessionId);
+    const jobId = await startVerifyJob(request.tenant.id, list2.id, session.id, session.name);
+    return { jobId };
+  });
+  app.get("/verify-jobs/:id", async function verifyStatus(request) {
+    const rows = await sql`
+      SELECT id, list_id, status, total, checked, found, error, created_at, updated_at
+      FROM verify_jobs WHERE id = ${String(request.params.id)}::bigint AND tenant_id = ${request.tenant.id}`;
+    if (!rows[0]) notFound("job_not_found");
+    return { ...rows[0], id: String(rows[0].id) };
+  });
+  app.get("/lists/:id/verify-jobs", async function listVerifyJobs(request) {
+    const list2 = await ownList(request.tenant.id, idParam(request.params));
+    const rows = await sql`SELECT id, status, total, checked, found, error, updated_at FROM verify_jobs WHERE list_id = ${list2.id} ORDER BY id DESC LIMIT 5`;
+    return rows.map((r) => ({ ...r, id: String(r.id) }));
   });
   app.get("/import-jobs/:id", async function jobStatus(request) {
     const rows = await sql`
@@ -85441,19 +85548,26 @@ async function contactRoutes(app) {
     const national = digits.replace(/^0+/, "");
     const like = `%${digits}%`;
     const likeNat = `%${national}%`;
+    const onlyWa = String(request.query?.waOnly ?? "") === "1";
     const rows = await sql`
-      SELECT id, phone, name, vars, created_at FROM contacts
-      WHERE list_id = ${list2.id} AND (${q} = '' OR (${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${"%" + q + "%"})
+      SELECT id, phone, name, vars, has_wa, created_at FROM contacts
+      WHERE list_id = ${list2.id}
+        AND (${!onlyWa} OR has_wa IS TRUE)
+        AND (${q} = '' OR (${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${"%" + q + "%"})
       ORDER BY id LIMIT ${limit3} OFFSET ${offset}`;
+    const [wa] = await sql`
+      SELECT count(*) FILTER (WHERE has_wa IS TRUE)::int AS has,
+             count(*) FILTER (WHERE has_wa IS FALSE)::int AS no,
+             count(*) FILTER (WHERE has_wa IS NULL)::int AS unchecked
+      FROM contacts WHERE list_id = ${list2.id}`;
     let total;
     if (q) {
-      const [c2] = await sql`SELECT count(*)::int AS total FROM contacts WHERE list_id = ${list2.id} AND ((${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${"%" + q + "%"})`;
+      const [c2] = await sql`SELECT count(*)::int AS total FROM contacts WHERE list_id = ${list2.id} AND (${!onlyWa} OR has_wa IS TRUE) AND ((${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${"%" + q + "%"})`;
       total = c2.total;
     } else {
-      const [lc] = await sql`SELECT (SELECT count(*)::int FROM contacts WHERE list_id = ${list2.id}) AS contacts`;
-      total = lc.contacts;
+      total = onlyWa ? wa.has : wa.has + wa.no + wa.unchecked;
     }
-    return { total, items: rows.map((r) => ({ ...r, id: String(r.id), display: displayPhone(r.phone) })) };
+    return { total, wa, items: rows.map((r) => ({ ...r, id: String(r.id), display: displayPhone(r.phone) })) };
   });
   app.delete("/lists/:id/contacts/:cid", async function removeContact(request) {
     const list2 = await ownList(request.tenant.id, idParam(request.params));

@@ -18,6 +18,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [msg, setMsg] = useState<Msg>({ type: 'text', text: '' });
   const [checkExists, setCheckExists] = useState(true);
   const [start, setStart] = useState(true);
+  const [onlyWa, setOnlyWa] = useState(false);
   const [override, setOverride] = useState(false);
   const [rate, setRate] = useState(20);
   const [cap, setCap] = useState(50000);
@@ -29,7 +30,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   async function create() {
     setBusy(true);
     try {
-      await api('/campaigns', { body: { name, sessionId: Number(sessionId), listId: Number(listId), message: cleanMsg(msg), checkExists, start, ...(override ? { ratePerMinute: Number(rate), dailyCap: Number(cap) } : {}), ...(autoReply ? { autoReply: { keywords: arKeywords.split(/[,\n]/).map((k) => k.trim()).filter(Boolean), match: 'exact', reply: cleanMsg(arReply), tag: arTag || null } } : {}) } });
+      await api('/campaigns', { body: { name, sessionId: Number(sessionId), listId: Number(listId), message: cleanMsg(msg), checkExists, onlyWhatsApp: onlyWa, start, ...(override ? { ratePerMinute: Number(rate), dailyCap: Number(cap) } : {}), ...(autoReply ? { autoReply: { keywords: arKeywords.split(/[,\n]/).map((k) => k.trim()).filter(Boolean), match: 'exact', reply: cleanMsg(arReply), tag: arTag || null } } : {}) } });
       onCreated();
     } catch (e) {
       toast.err(e);
@@ -72,6 +73,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           </div>
           <div className="space-y-3 rounded-xl bg-slate-50 p-4 dark:bg-white/[0.03]">
             <Toggle checked={checkExists} onChange={setCheckExists} label={t('checkExists')} />
+            <Toggle checked={onlyWa} onChange={setOnlyWa} label={t('onlyWhatsApp')} />
             <Toggle checked={start} onChange={setStart} label={t('startNow')} />
             <Toggle checked={override} onChange={setOverride} label={t('overrideRate')} />
             {override && (

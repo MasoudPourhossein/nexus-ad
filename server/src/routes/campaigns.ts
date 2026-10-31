@@ -50,6 +50,7 @@ export async function campaignRoutes(app: FastifyInstance): Promise<void> {
         listId: z.number().int(),
         message: messageSchema,
         checkExists: z.boolean().default(true),
+        onlyWhatsApp: z.boolean().default(false),
         start: z.boolean().default(false),
         ratePerMinute: z.number().int().min(0).max(600).optional(),
         dailyCap: z.number().int().min(0).max(10000000).optional(),
@@ -77,8 +78,8 @@ export async function campaignRoutes(app: FastifyInstance): Promise<void> {
     const list = await sql`SELECT 1 FROM contact_lists WHERE id = ${body.listId} AND tenant_id = ${tid}`;
     if (!list.length) throw new HttpError(404, 'list_not_found');
     const [row] = await sql`
-      INSERT INTO campaigns (tenant_id, session_id, list_id, name, message, check_exists)
-      VALUES (${tid}, ${body.sessionId}, ${body.listId}, ${body.name}, ${sql.json(body.message as any)}, ${body.checkExists})
+      INSERT INTO campaigns (tenant_id, session_id, list_id, name, message, check_exists, only_whatsapp)
+      VALUES (${tid}, ${body.sessionId}, ${body.listId}, ${body.name}, ${sql.json(body.message as any)}, ${body.checkExists}, ${body.onlyWhatsApp})
       RETURNING *`;
     if (body.autoReply) {
       const ar = body.autoReply;
@@ -266,6 +267,7 @@ async function startCampaign(c: any): Promise<{ queued: number }> {
     SELECT ${c.tenant_id}, ${c.session_id}, ${c.id}, ct.id, ct.phone, ${sql.json(c.message)}, 'queued'
     FROM contacts ct
     WHERE ct.list_id = ${c.list_id}
+      AND (${c.only_whatsapp} = FALSE OR ct.has_wa IS TRUE)
       AND NOT EXISTS (SELECT 1 FROM opt_outs o WHERE o.tenant_id = ${c.tenant_id} AND o.phone = ct.phone)
     RETURNING id`;
   await sql`UPDATE campaigns SET status = 'running', started_at = now() WHERE id = ${c.id}`;

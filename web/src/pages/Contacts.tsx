@@ -18,6 +18,9 @@ function ImportResult({ r }: { r: any }) {
 function ImportModal({ list, onClose }: { list: any; onClose: () => void }) {
   const { t, fmt } = useI18n();
   const toast = useToast();
+  const sessions = useAsync(() => api('/sessions'), []);
+  const [verify, setVerify] = useState(false);
+  const [sessionId, setSessionId] = useState<number | ''>('');
   const [tab, setTab] = useState<'csv' | 'paste'>('csv');
   const [pctv, setPct] = useState<number | null>(null);
   const [job, setJob] = useState<any>(null);
@@ -50,7 +53,8 @@ function ImportModal({ list, onClose }: { list: any; onClose: () => void }) {
     setJob(null);
     setPct(0);
     try {
-      const r = await upload(`/lists/${list.id}/import`, file, setPct);
+      const qs = verify && sessionId ? `?verify=1&sessionId=${sessionId}` : '';
+      const r = await upload(`/lists/${list.id}/import${qs}`, file, setPct);
       setPct(null);
       if (r.jobId) {
         setJob({ status: 'running', rows: 0, imported: 0, invalid: 0, duplicates: 0 });
@@ -77,6 +81,15 @@ function ImportModal({ list, onClose }: { list: any; onClose: () => void }) {
         <Tabs value={tab} onChange={setTab} items={[{ value: 'csv', label: 'CSV' }, { value: 'paste', label: t('pasteNumbers') }]} />
         {tab === 'csv' ? (
           <>
+            <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/[0.03]">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-brand-500" checked={verify} onChange={(e) => setVerify(e.target.checked)} /> {t('verifyOnImport')}</label>
+              {verify && (
+                <select className="input mt-2" value={sessionId} onChange={(e) => setSessionId(Number(e.target.value))}>
+                  <option value="">{t('pickSessionFirst')}</option>
+                  {sessions.data?.filter((x: any) => x.status === 'WORKING').map((x: any) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                </select>
+              )}
+            </div>
             <div
               onClick={() => input.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
@@ -123,31 +136,73 @@ function ImportModal({ list, onClose }: { list: any; onClose: () => void }) {
 
 function ListView({ list, onBack }: { list: any; onBack: () => void }) {
   const { t, dir, fmt, date } = useI18n();
+  const toast = useToast();
   const [q, setQ] = useState('');
+  const [waOnly, setWaOnly] = useState(false);
   const [pageN, setPage] = useState(1);
-  const { data, reload } = useAsync(() => api(`/lists/${list.id}/contacts?page=${pageN}&q=${encodeURIComponent(q)}`), [list.id, pageN, q]);
+  const { data, reload } = useAsync(() => api(`/lists/${list.id}/contacts?page=${pageN}&q=${encodeURIComponent(q)}${waOnly ? '&waOnly=1' : ''}`), [list.id, pageN, q, waOnly]);
+  const sessions = useAsync(() => api('/sessions'), []);
+  const [vjob, setVjob] = useState<any>(null);
+  const vtimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => () => { if (vtimer.current) clearInterval(vtimer.current); }, []);
+  async function startVerify() {
+    const working = sessions.data?.filter((x: any) => x.status === 'WORKING') ?? [];
+    if (!working.length) { toast.err(new Error(t('pickSessionFirst'))); return; }
+    try {
+      const r = await api(`/lists/${list.id}/verify`, { body: { sessionId: working[0].id } });
+      setVjob({ status: 'running', total: 0, checked: 0, found: 0 });
+      if (vtimer.current) clearInterval(vtimer.current);
+      vtimer.current = setInterval(async () => {
+        try {
+          const j = await api(`/verify-jobs/${r.jobId}`);
+          setVjob(j);
+          if (j.status !== 'running') { if (vtimer.current) clearInterval(vtimer.current); void reload(); }
+        } catch { /* keep polling */ }
+      }, 1500);
+    } catch (e) { toast.err(e); }
+  }
   const Back = dir === 'rtl' ? ArrowRight : ArrowLeft;
   return (
     <>
-      <PageHeader title={list.name} subtitle={data ? `${fmt(data.total)} ${t('contacts')}` : ''} actions={<button className="btn-outline" onClick={onBack}><Back size={16} /> {t('back')}</button>} />
+      <PageHeader title={list.name} subtitle={data ? `${fmt(data.total)} ${t('contacts')}` : ''} actions={<><button className="btn-primary" onClick={startVerify}><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1 14l-4-4 1.4-1.4L11 13.2l4.6-4.6L17 10z"/></svg> {t('verifyWa')}</button><button className="btn-outline" onClick={onBack}><Back size={16} /> {t('back')}</button></>} />
       <div className="card overflow-hidden">
-        <div className="border-b border-slate-100 p-3 dark:border-white/5">
-          <div className="relative max-w-xs">
-            <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input className="input ps-9" placeholder={t('search')} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+        <div className="space-y-3 border-b border-slate-100 p-3 dark:border-white/5">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative max-w-xs flex-1">
+              <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input className="input ps-9" placeholder={t('search')} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+            </div>
+            {data?.wa && (data.wa.has > 0 || data.wa.no > 0) && (
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-brand-500" checked={waOnly} onChange={(e) => { setWaOnly(e.target.checked); setPage(1); }} /> {t('withWa')}</label>
+            )}
           </div>
+          {data?.wa && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="badge bg-brand-500/15 text-brand-700 dark:text-brand-300">{t('hasWa')}: {fmt(data.wa.has)}</span>
+              <span className="badge bg-rose-500/10 text-rose-600">{t('noWa')}: {fmt(data.wa.no)}</span>
+              <span className="badge bg-slate-500/10 text-slate-500">{t('unchecked')}: {fmt(data.wa.unchecked)}</span>
+            </div>
+          )}
+          {vjob && (
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-2.5 text-sm dark:bg-white/[0.03]">
+              {vjob.status === 'running' ? <Spinner /> : null}
+              <span>{vjob.status === 'running' ? t('verifying') : t('verifyDone')}</span>
+              <span className="text-xs text-slate-500">{fmt(vjob.checked)} / {fmt(vjob.total)} · {t('hasWa')}: {fmt(vjob.found)}</span>
+              {vjob.status === 'running' && <span className="ms-auto text-xs text-slate-400">{t('keepOpen')}</span>}
+            </div>
+          )}
         </div>
         {!data ? <Loading /> : !data.items.length ? <Empty /> : (
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th>{t('phone')}</th><th>{t('name')}</th><th>Vars</th><th>{t('createdAt')}</th><th /></tr></thead>
+              <thead><tr><th>{t('phone')}</th><th>{t('status')}</th><th>{t('name')}</th><th>Vars</th><th /></tr></thead>
               <tbody>
                 {data.items.map((c: any) => (
                   <tr key={c.id}>
                     <td><Phone value={c.display} /></td>
+                    <td>{c.has_wa === true ? <span className="badge bg-brand-500/15 text-brand-700 dark:text-brand-300">{t('hasWa')}</span> : c.has_wa === false ? <span className="badge bg-rose-500/10 text-rose-600">{t('noWa')}</span> : <span className="text-xs text-slate-400">—</span>}</td>
                     <td>{c.name ?? '—'}</td>
                     <td className="max-w-xs truncate text-xs text-slate-500">{Object.entries(c.vars ?? {}).map(([k, v]) => `${k}: ${v}`).join(' · ') || '—'}</td>
-                    <td className="text-xs text-slate-500">{date(c.created_at, false)}</td>
                     <td className="text-end"><button className="btn-danger !p-1.5" onClick={async () => { await api(`/lists/${list.id}/contacts/${c.id}`, { method: 'DELETE' }); void reload(); }}><Trash2 size={14} /></button></td>
                   </tr>
                 ))}

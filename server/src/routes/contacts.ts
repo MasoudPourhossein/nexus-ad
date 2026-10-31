@@ -8,6 +8,8 @@ import { Readable } from 'node:stream';
 import { config } from '../config.js';
 import { z } from 'zod';
 import { runImportJob } from '../csv-import.js';
+import { startVerifyJob } from '../verify.js';
+import { ownSession } from './sessions.js';
 import { sql } from '../db.js';
 import { HttpError, idParam, notFound, page, parse } from '../http.js';
 import { displayPhone, latinDigits, normalizePhone } from '../phone.js';
@@ -51,11 +53,42 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
     await mkdir(dir, { recursive: true });
     const path = join(dir, `${request.tenant.id}_${randomUUID()}.csv`);
     await pipeline(file.file, createWriteStream(path));
+    const verify = String((request.query as any)?.verify ?? '') === '1';
+    const sessionId = Number((request.query as any)?.sessionId ?? 0) || null;
+    let sessionName: string | null = null;
+    if (verify && sessionId) {
+      const srow = await ownSession(request.tenant.id, sessionId);
+      sessionName = srow.name;
+    }
     const [job] = await sql<{ id: bigint }[]>`
       INSERT INTO import_jobs (tenant_id, list_id) VALUES (${request.tenant.id}, ${list.id}) RETURNING id`;
     // Run in the background so a 10M-row file is not bound by the request timeout.
-    void runImportJob(job.id, path, request.tenant.id, list.id);
+    void runImportJob(job.id, path, request.tenant.id, list.id).then(async function afterImport() {
+      if (sessionName) await startVerifyJob(request.tenant.id, list.id, sessionId!, sessionName).catch(function ignore() {});
+    });
     return { jobId: String(job.id) };
+  });
+
+  app.post('/lists/:id/verify', async function verifyList(request) {
+    const list = await ownList(request.tenant.id, idParam(request.params));
+    const body = parse(z.object({ sessionId: z.number().int() }), request.body);
+    const session = await ownSession(request.tenant.id, body.sessionId);
+    const jobId = await startVerifyJob(request.tenant.id, list.id, session.id, session.name);
+    return { jobId: jobId };
+  });
+
+  app.get('/verify-jobs/:id', async function verifyStatus(request) {
+    const rows = await sql`
+      SELECT id, list_id, status, total, checked, found, error, created_at, updated_at
+      FROM verify_jobs WHERE id = ${String((request.params as any).id)}::bigint AND tenant_id = ${request.tenant.id}`;
+    if (!rows[0]) notFound('job_not_found');
+    return { ...rows[0], id: String(rows[0].id) };
+  });
+
+  app.get('/lists/:id/verify-jobs', async function listVerifyJobs(request) {
+    const list = await ownList(request.tenant.id, idParam(request.params));
+    const rows = await sql`SELECT id, status, total, checked, found, error, updated_at FROM verify_jobs WHERE list_id = ${list.id} ORDER BY id DESC LIMIT 5`;
+    return rows.map((r: any) => ({ ...r, id: String(r.id) }));
   });
 
   app.get('/import-jobs/:id', async function jobStatus(request) {
@@ -98,20 +131,26 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
     const national = digits.replace(/^0+/, '');
     const like = `%${digits}%`;
     const likeNat = `%${national}%`;
+    const onlyWa = String((request.query as any)?.waOnly ?? '') === '1';
     const rows = await sql`
-      SELECT id, phone, name, vars, created_at FROM contacts
-      WHERE list_id = ${list.id} AND (${q} = '' OR (${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${'%' + q + '%'})
+      SELECT id, phone, name, vars, has_wa, created_at FROM contacts
+      WHERE list_id = ${list.id}
+        AND (${!onlyWa} OR has_wa IS TRUE)
+        AND (${q} = '' OR (${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${'%' + q + '%'})
       ORDER BY id LIMIT ${limit} OFFSET ${offset}`;
-    // exact count only when searching or on small lists; otherwise an estimate keeps huge lists instant
+    const [wa] = await sql<{ has: number; no: number; unchecked: number }[]>`
+      SELECT count(*) FILTER (WHERE has_wa IS TRUE)::int AS has,
+             count(*) FILTER (WHERE has_wa IS FALSE)::int AS no,
+             count(*) FILTER (WHERE has_wa IS NULL)::int AS unchecked
+      FROM contacts WHERE list_id = ${list.id}`;
     let total: number;
     if (q) {
-      const [c] = await sql<{ total: number }[]>`SELECT count(*)::int AS total FROM contacts WHERE list_id = ${list.id} AND ((${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${'%' + q + '%'})`;
+      const [c] = await sql<{ total: number }[]>`SELECT count(*)::int AS total FROM contacts WHERE list_id = ${list.id} AND (${!onlyWa} OR has_wa IS TRUE) AND ((${digits} <> '' AND (phone LIKE ${like} OR phone LIKE ${likeNat})) OR name ILIKE ${'%' + q + '%'})`;
       total = c.total;
     } else {
-      const [lc] = await sql<{ contacts: number }[]>`SELECT (SELECT count(*)::int FROM contacts WHERE list_id = ${list.id}) AS contacts`;
-      total = lc.contacts;
+      total = onlyWa ? wa.has : wa.has + wa.no + wa.unchecked;
     }
-    return { total: total, items: rows.map((r: any) => ({ ...r, id: String(r.id), display: displayPhone(r.phone) })) };
+    return { total: total, wa: wa, items: rows.map((r: any) => ({ ...r, id: String(r.id), display: displayPhone(r.phone) })) };
   });
 
   app.delete('/lists/:id/contacts/:cid', async function removeContact(request) {
